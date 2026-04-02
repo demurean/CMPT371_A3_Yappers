@@ -8,7 +8,7 @@
 > 
 > | Name           | Student ID | Email        |
 > |----------------|------------|--------------|
-> | Arielle #TODO  | #TODO      | #TODO@sfu.ca |
+> | Arielle FELICIA  | 301597636 | #afa85@sfu.ca |
 > | Tasha Gandevia | 301557333  | tga62@sfu.ca |
 
 ---

@@ -1,0 +1,45 @@
+using PyAudio for the voice
+// cant have two people talking at once 
+// its all broadcast
+// 2 channels for now (autonamed: channel 1, channel 2)
+// peer2peer architecture
+
+Current layout:
+GUI:
+1. auto generated name from a dictionary (NATO alphabet)
+2. display channels to join (2)
+3. option to join/change/quit channel as needed
+4. push to talk, responsive status circles
+
+
+UI/Client: p2p client how does that work?
+First MENU: choose name from selection.
+    if alphabet is taken, then grey it out (unusable)
+Push to talk feature
+when one person talks, green/red circles lights up.
+    Status per person:
+        green = actively talking
+        yellow = when no one is actively talking
+        red = muted
+    All the other users in the same channel will be muted when another speaks.
+    And when no one is talking, yellow.
+change servers/quit feature
+
+Server: look into p2p UDP?
+Experiment UDP or TCP for multiple channels in one connection.
+    we think UDP for real time.
+Setting Identity pp connected
+
+// Optional feature:
+main big broadcast channel with high priority.
+GUI -- have fun making it look very cool B-]
+renaming the channel name
+
+
+DEADLINES:
+checkin by Saturday April 4 (12 PM)
+    8 PM: try finish everything
+Sunday April 5
+    Morning: report & check comppleteness
+    3 PM: start recording
+    6 PM: try to submit
