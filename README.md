@@ -8,7 +8,7 @@
 > 
 > | Name           | Student ID | Email        |
 > |----------------|------------|--------------|
-> | Arielle FELICIA  | 301597636 | #afa85@sfu.ca |
+> | Arielle Felicia  | 301597636 | afa85@sfu.ca |
 > | Tasha Gandevia | 301557333  | tga62@sfu.ca |
 
 ---
@@ -18,13 +18,17 @@
 A real-time **push-to-talk (PTT) voice chat application** implemented in Python using UDP sockets. 
 
 **Features:**
-- #TODO
+- Unique usernames for each client based on the NATO alphabet
+- 2 Channels to communicate over on (one at a time)
+- Status circles next to the username to indicate active talker and muted
+- Push to talk.
 
 **Architecture:**
-- Client–Server over UDP
+- Client–Server over TCP to communicate & keep track of client IPs over channels and usernames in the active session
+- Peer-to-Peer over UDP for broadcasting voice and simulating walkie-talkies
 
 **Additional Details:**
-- #TODO
+- Only one user can speak at a time (as how walkie talkies are)
 
 ---
 
@@ -32,7 +36,7 @@ A real-time **push-to-talk (PTT) voice chat application** implemented in Python 
 
 #### Prerequisites
 
-- Python version {#TODO}
+- Python version 3.13.1
 - #TODO required installs
 
 
@@ -84,6 +88,7 @@ CMPT371_A3_Yappers/
 ├── server.py          # server -> registration, relay, timeout
 ├── client.py          # client -> audio capture/playback, Tkinter GUI
 ├── requirements.txt   # dependency list
+├── notes.txt          # planning and meeting notes
 └── README.md          # this file
 ```
 
@@ -96,8 +101,7 @@ CMPT371_A3_Yappers/
 ---
 
 ### Limitations & Known Issues
-
-#TODO
+server.py is not meant to be scaled up on. This implementation(with no JSON) is expected to stay at its current size
 
 ---
 
@@ -108,5 +112,4 @@ CMPT371_A3_Yappers/
 ---
 
 ### References & Citations
-
-#TODO
+Double checked for edge cases in server.py with ChatGPT

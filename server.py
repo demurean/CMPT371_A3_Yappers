@@ -1,6 +1,5 @@
 # server side only facilitates finding other peers & sharing the IP & Port #
 import socket
-import json
 import threading
 
 # Server Configuration
