@@ -21,7 +21,6 @@ Channels = {
 # function handling client requests & identification: Registering and Keeping Track
 # alongside broadcasting client IP to facilitate p2p amongst themselves.
 def handle_client(conn, addr):
-    print(f"Connected: {addr}")
     username = None
     channel = None
     try:
@@ -29,7 +28,9 @@ def handle_client(conn, addr):
             data = conn.recv(1024)
             if not data:
                 break
+            # print(data)
             msg = data.decode().strip() # removes newlines
+            print(msg)
             # messages are formatted with: [TYPE OF MESSAGE] [ARGUMENT] [PORT]
             parts = msg.split()
             if not parts:
@@ -44,14 +45,15 @@ def handle_client(conn, addr):
             # confirming their selection -- frontend might need to be dynamic.
             # since this is TCP, hopefully transactions are atomic........
             elif command == "REGISTER":
+                # print(parts[1])
                 RequestedName = parts[1]
-                UDPport = int(parts[2])
+                clientPort = addr
                 if RequestedName not in AvailableUsernames:
                     conn.send(b"REGISTER_FAIL")
                 else:
                     username = RequestedName
                     AvailableUsernames.remove(username)
-                    OnlineUsers[username] = (addr[0], UDPport)
+                    OnlineUsers[username] = (addr[0], clientPort)
                     conn.send(b"REGISTER_SUCCESS")
             
             # client chooses a channel to communicate in. server shares necessary info for the fun to begin
@@ -74,7 +76,7 @@ def handle_client(conn, addr):
 
             # client exits channel and is in channel lobby
             elif command == "RETURN":
-                channel.pop(username, None)
+                Channels[channel].pop(username, None)
                 print(f"disconnected from {channel}")
                 channel = None
     
@@ -97,6 +99,7 @@ def start_server():
     print("Server Listening...")
     while True:
         conn, addr = MySocket.accept()
+        print("connected by:", addr)
         # use threading per client
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
