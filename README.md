@@ -112,4 +112,5 @@ server.py is not meant to be scaled up on. This implementation(with no JSON) is 
 ---
 
 ### References & Citations
-Double checked for edge cases in server.py with ChatGPT
+- Double checked for edge cases in server.py with ChatGPT
+- Tkinter tutorial to make the python app https://www.pythontutorial.net/tkinter/
