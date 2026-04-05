@@ -208,6 +208,11 @@ class YappersApp:
 
         self.show_channel()
 
+        # start listener for push notifications (JOIN_NOTIFY / LEAVE_NOTIFY)
+        self._listen_flag = threading.Event()
+        self._listen_flag.set()
+        threading.Thread(target=self._server_listener, daemon=True).start()
+
     # ══════════════════════════════════════════════════════════════════════════
     # SCREEN 3 — In channel
     # ══════════════════════════════════════════════════════════════════════════
@@ -299,11 +304,59 @@ class YappersApp:
         if uname in self.user_circles:
             self.user_circles[uname].itemconfig("dot", fill=self._color(status))
 
+    # ── Server push listener ──────────────────────────────────────────────────
+
+    def _server_listener(self):
+        self.server_socket.settimeout(1.0)
+        buf = ""
+        while self._listen_flag.is_set():
+            try:
+                data = self.server_socket.recv(1024).decode()
+                if not data:
+                    break
+                buf += data
+                while "\n" in buf:
+                    line, buf = buf.split("\n", 1)
+                    self._handle_push(line.strip())
+            except socket.timeout:
+                continue
+            except Exception:
+                break
+
+    def _handle_push(self, msg):
+        parts = msg.split()
+        if not parts:
+            return
+        if parts[0] == "JOIN_NOTIFY" and len(parts) > 1:
+            username, ip, port = parts[1].rsplit(":", 2)
+            self.root.after(0, self._add_peer, username, ip, int(port))
+        elif parts[0] == "LEAVE_NOTIFY" and len(parts) > 1:
+            self.root.after(0, self._remove_peer, parts[1])
+
+    def _add_peer(self, username, ip, port):
+        if not self.current_channel or username in self.channel_users:
+            return
+        self.channel_users[username] = "idle"
+        self.peers[username] = (ip, port)
+        self._rebuild_cards()
+
+    def _remove_peer(self, username):
+        if not self.current_channel:
+            return
+        self.channel_users.pop(username, None)
+        self.peers.pop(username, None)
+        self._rebuild_cards()
+
     # ── Navigation ────────────────────────────────────────────────────────────
 
     def _return_to_lobby(self, _event=None):
-        # TODO: self.server_socket.sendall(b"RETURN")
         self.stop_talking()
+        if hasattr(self, '_listen_flag'):
+            self._listen_flag.clear()
+        try:
+            self.server_socket.sendall(b"RETURN")
+        except Exception:
+            pass
         self.current_channel = None
         self.channel_users.clear()
         self.show_channel_lobby()
@@ -382,8 +435,14 @@ class YappersApp:
     def _on_close(self):
         self.running.clear()
         self.is_talking.clear()
+        if hasattr(self, '_listen_flag'):
+            self._listen_flag.clear()
 
-        # TODO: if self.server_socket: self.server_socket.sendall(b"RETURN"); self.server_socket.close()
+        try:
+            self.server_socket.sendall(b"RETURN")
+            self.server_socket.close()
+        except Exception:
+            pass
 
         for stream in (self.record_stream, self.playback_stream):
             if stream:
