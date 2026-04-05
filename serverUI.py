@@ -13,6 +13,9 @@ GREEN  = "#4CAF50"
 RED    = "#f44336"
 CARD   = "#2b2b2b"
 
+# Can be changed later once we set theme
+HF = ("Consolas", 24, "bold")
+BF = ("Consolas", 12, "normal")
 
 class ServerUI:
     def __init__(self, root: tk.Tk):
@@ -29,16 +32,16 @@ class ServerUI:
         top.pack_propagate(False)
 
         tk.Label(top, text="Yappers Server", bg=TOPBAR, fg=FG,
-                 font=("Helvetica", 14, "bold")).pack(side="left", padx=16, pady=12)
+                 font=HF).pack(side="left", padx=16, pady=12)
 
         tk.Button(top, text="End Server", command=self._shutdown,
-                  bg=RED, fg=FG, relief="flat",
+                  bg=RED, fg=FG, relief="flat", font=BF,
                   padx=12, pady=4, cursor="hand2").pack(side="right", padx=16, pady=10)
 
         # Online count
         self._status_var = tk.StringVar(value="Online: 0")
         tk.Label(self.root, textvariable=self._status_var,
-                 bg=BG, fg=DIM, font=("Helvetica", 10)).pack(anchor="w", padx=16, pady=(10, 4))
+                 bg=BG, fg=DIM, font=BF).pack(anchor="w", padx=16, pady=(10, 4))
 
         # User list
         list_frame = tk.Frame(self.root, bg=BG)
@@ -48,9 +51,9 @@ class ServerUI:
         header = tk.Frame(list_frame, bg=BG)
         header.pack(fill="x", pady=(0, 4))
         tk.Label(header, text="Username", bg=BG, fg=DIM,
-                 font=("Helvetica", 10, "bold"), width=20, anchor="w").pack(side="left")
+                 font=BF, width=20, anchor="w").pack(side="left")
         tk.Label(header, text="Channel", bg=BG, fg=DIM,
-                 font=("Helvetica", 10, "bold"), anchor="w").pack(side="left")
+                 font=BF, anchor="w").pack(side="left")
 
         tk.Frame(list_frame, bg="#444444", height=1).pack(fill="x", pady=(0, 6))
 
@@ -82,9 +85,9 @@ class ServerUI:
             color = DIM if ch == "(lobby)" else GREEN
 
             tk.Label(row, text=uname, bg=CARD, fg=FG,
-                     font=("Helvetica", 11), width=20, anchor="w").pack(side="left", padx=8)
+                     font=BF, width=20, anchor="w").pack(side="left", padx=8)
             tk.Label(row, text=ch, bg=CARD, fg=color,
-                     font=("Helvetica", 11), anchor="w").pack(side="left")
+                     font=BF, anchor="w").pack(side="left")
 
         self.root.after(500, self._refresh)
 
