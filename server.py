@@ -69,8 +69,7 @@ def handle_client(conn, addr):
                     continue
 
                 Channels[channel][username] = OnlineUsers[username]
-                peers = Channels[channel].values()
-                PeerStrings = [f"{ip}:{port}" for ip, port in peers] # so looks like: ["192.168.1.5:6000", "192.168.1.8:6001"] << is ["IP1:PORT1", "IP2:PORT2"]
+                PeerStrings = [f"{username}:{ip}:{port}" for username, (ip, port) in Channels[channel].items()] # so looks like: ["Alpha:192.168.1.5:6000", "Bravo:192.168.1.8:6001"] << is ["USERNAME1:IP1:PORT1", "USERNAME2:IP2:PORT2"]
                 response = "PEERS " + " ".join(PeerStrings)
                 conn.send(response.encode())
 

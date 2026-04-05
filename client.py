@@ -35,7 +35,7 @@ def GetAvailableUsernames(s):
         return []
 
 def RegisterUsername(s, username):
-    message = f"REGISTER {Username}"
+    message = f"REGISTER {username}"
     s.sendall(message.encode())
     response = s.recv(1024).decode().strip()
     return response # REGISTER_SUCCESS or REGISTER_FAIL
@@ -49,9 +49,11 @@ def JoinChannel(s, channel):
 
     if parts[0] == "PEERS":
         for peer_str in parts[1:]:
-            ip, port = peer_str.rsplit(":", 1)
-            peers[ip] = (ip, int(port)) # TODO: implement with usernames later
+            username, ip, port = peer_str.rsplit(":", 2)
+            peers[username] = (ip, int(port)) 
     return peers
+
+# TODO: make receive loop to update UI.py with any changes in channel's clients
 
 # def start_app():
 #     print("starting the application...")
