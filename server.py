@@ -7,6 +7,7 @@ HOST = '0.0.0.0'
 PORT = 5050
 AUDIO_PORT = 6000  # UDP port every client binds for peer audio
 MySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+MySocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 MySocket.bind((HOST, PORT))
 MySocket.listen()
 
@@ -14,6 +15,7 @@ MySocket.listen()
 AllUsernames = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-Ray", "Yankee", "Zulu"]
 AvailableUsernames = AllUsernames.copy()
 OnlineUsers = {}
+Connections = {}  # username -> TCP conn, for push notifications
 Channels = {
     "Channel 1": {},
     "Channel 2": {}
@@ -53,6 +55,7 @@ def handle_client(conn, addr):
                     username = RequestedName
                     AvailableUsernames.remove(username)
                     OnlineUsers[username] = (addr[0], AUDIO_PORT)
+                    Connections[username] = conn
                     conn.send(b"REGISTER_SUCCESS")
             
             # client chooses a channel to communicate in. server shares necessary info for the fun to begin
@@ -74,11 +77,26 @@ def handle_client(conn, addr):
                 # print(response)
                 conn.send(response.encode())
 
+                # notify existing members that a new peer joined
+                notify = f"JOIN_NOTIFY {username}:{addr[0]}:{AUDIO_PORT}\n"
+                for member in list(Channels[channel]):
+                    if member != username and member in Connections:
+                        try:
+                            Connections[member].sendall(notify.encode())
+                        except Exception:
+                            pass
+
             # client exits channel and is in channel lobby
             elif command == "RETURN":
-            # TODO: not connected in client.py or UI.py yet
                 Channels[channel].pop(username, None)
                 print(f"disconnected from {channel}")
+                notify = f"LEAVE_NOTIFY {username}\n"
+                for member in list(Channels[channel]):
+                    if member in Connections:
+                        try:
+                            Connections[member].sendall(notify.encode())
+                        except Exception:
+                            pass
                 channel = None
     
     # if any error happens. go here
@@ -89,7 +107,17 @@ def handle_client(conn, addr):
     finally:
         print(f"{addr} disconnected")
         if username:
+            Connections.pop(username, None)
             OnlineUsers.pop(username, None)
+            if channel:
+                Channels[channel].pop(username, None)
+                notify = f"LEAVE_NOTIFY {username}\n"
+                for member in list(Channels[channel]):
+                    if member in Connections:
+                        try:
+                            Connections[member].sendall(notify.encode())
+                        except Exception:
+                            pass
             for ch in Channels.values(): # clean sweep
                 ch.pop(username, None)
             AvailableUsernames.append(username) # username available to be used again
@@ -99,11 +127,15 @@ def handle_client(conn, addr):
 def start_server():
     print("Server Listening...")
     while True:
-        conn, addr = MySocket.accept()
+        try:
+            conn, addr = MySocket.accept()
+        except OSError:
+            break
         print("connected by:", addr)
         # use threading per client
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
 
-start_server()
+if __name__ == "__main__":
+    start_server()
         
