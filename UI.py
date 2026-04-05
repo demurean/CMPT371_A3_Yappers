@@ -195,6 +195,7 @@ class YappersApp:
         #         ip, port = peer_str.rsplit(":", 1)
         #         # NOTE: server needs to also send peer username alongside ip:port
         #         # self.peers[peer_username] = (ip, int(port))
+       
         peers = client.JoinChannel(self.server_socket, ch_name)
         self.peers = peers
         self.current_channel = ch_name

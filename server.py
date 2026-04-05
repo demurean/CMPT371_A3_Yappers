@@ -14,8 +14,8 @@ AllUsernames = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf",
 AvailableUsernames = AllUsernames.copy()
 OnlineUsers = {}
 Channels = {
-    "Channel1": {},
-    "Channel2": {}
+    "Channel 1": {},
+    "Channel 2": {}
 } # channels are fixed ports btw.
 
 # function handling client requests & identification: Registering and Keeping Track
@@ -45,14 +45,13 @@ def handle_client(conn, addr):
             # confirming their selection -- frontend might need to be dynamic.
             # since this is TCP, hopefully transactions are atomic........
             elif command == "REGISTER":
-                # print(parts[1])
                 RequestedName = parts[1]
-                clientPort = addr
                 if RequestedName not in AvailableUsernames:
                     conn.send(b"REGISTER_FAIL")
                 else:
                     username = RequestedName
                     AvailableUsernames.remove(username)
+                    clientPort = addr[1] # i thought this is TCP port??? but clients use this port too for their UDP????
                     OnlineUsers[username] = (addr[0], clientPort)
                     conn.send(b"REGISTER_SUCCESS")
             
@@ -63,7 +62,7 @@ def handle_client(conn, addr):
                     conn.send(b"ERROR Not registered")
                     continue
 
-                channel = parts[1]
+                channel = " ".join(parts[1:])
                 if channel not in Channels:
                     conn.send(b"ERROR Invalid channel")
                     continue
@@ -71,10 +70,13 @@ def handle_client(conn, addr):
                 Channels[channel][username] = OnlineUsers[username]
                 PeerStrings = [f"{username}:{ip}:{port}" for username, (ip, port) in Channels[channel].items()] # so looks like: ["Alpha:192.168.1.5:6000", "Bravo:192.168.1.8:6001"] << is ["USERNAME1:IP1:PORT1", "USERNAME2:IP2:PORT2"]
                 response = "PEERS " + " ".join(PeerStrings)
+                print("DEBUG CHANNEL STATE:", Channels[channel])
+                # print(response)
                 conn.send(response.encode())
 
             # client exits channel and is in channel lobby
             elif command == "RETURN":
+            # TODO: not connected in client.py or UI.py yet
                 Channels[channel].pop(username, None)
                 print(f"disconnected from {channel}")
                 channel = None

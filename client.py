@@ -23,6 +23,7 @@ AUDIO_PORT = 6000   # UDP port all clients listen on for peer audio
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 5050
 Username = None
+UDP_PORT = 0
 
 ## 1. CLIENT ESTABLISHING CONNECTION TO SERVER + Choosing Username
 def GetAvailableUsernames(s):
@@ -35,7 +36,8 @@ def GetAvailableUsernames(s):
         return []
 
 def RegisterUsername(s, username):
-    message = f"REGISTER {username}"
+    message = f"REGISTER {username}" #put UDP_port here?
+    # order of events is so weird. UDP_Port ^^ is 0, then its 6000.
     s.sendall(message.encode())
     response = s.recv(1024).decode().strip()
     return response # REGISTER_SUCCESS or REGISTER_FAIL
@@ -70,6 +72,8 @@ def setup_udp():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('', AUDIO_PORT))
     sock.settimeout(1.0)
+    # UDP_PORT = sock.getsockname()[1]
+    # print(UDP_PORT)
     return sock
 
 def send_audio_loop(record_stream, udp_sock, peers, username, is_talking_flag):
