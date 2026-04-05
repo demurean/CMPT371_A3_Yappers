@@ -23,11 +23,16 @@ CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
 # TODO: live client display once user connects (more like a client.py related thing)
 
 
+# Can be changed later once we set theme
+HF = ("Consolas", 20, "bold")       #Header
+BF = ("Consolas", 12, "normal")     #Body
+LF = ("Consolas", 8, "bold")        #Label
+
 class YappersApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Yappers")
-        self.root.geometry("900x500")
+        self.root.geometry("750x500")
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
 
@@ -115,7 +120,7 @@ class YappersApp:
         self._frame = frame
 
         tk.Label(frame, text="Please select a username",
-                 bg=BG, fg=FG, font=("Helvetica", 14)).pack(pady=(0, 16))
+                 bg=BG, fg=FG, font=HF).pack(pady=(0, 16))
 
         row = tk.Frame(frame, bg=BG)
         row.pack(pady=(0, 16))
@@ -123,15 +128,21 @@ class YappersApp:
         self._uvar = tk.StringVar()
         # values come from server LOBBY response
         AVAILABLE_USERNAMES = client.GetAvailableUsernames(self.server_socket)
-        ttk.Combobox(row, textvariable=self._uvar,
-                     values= AVAILABLE_USERNAMES,
-                     state="readonly", width=28).pack(side="left", padx=(0, 4))
+        self._username_cb = ttk.Combobox(row, textvariable=self._uvar,
+                                         values=AVAILABLE_USERNAMES,
+                                         state="readonly", width=28)
+        self._username_cb.pack(side="left", padx=(0, 4))
 
         tk.Button(row, text="✓", command=self._confirm_username,
                   bg=BTN, fg=FG, relief="flat", padx=8, pady=4).pack(side="left")
 
+        self._username_error = tk.Label(frame, text="",
+                                        bg=BG, fg=RED, font=BF)
+        self._username_error.pack(pady=(8, 0))
+
+        # TODO Tutorial / Info
         tk.Label(frame, text="link to dif page for tutorial",
-                 bg=BG, fg=DIM, font=("Helvetica", 9, "underline"),
+                 bg=BG, fg=DIM, font=LF,
                  cursor="hand2").pack()
 
     def _confirm_username(self):
@@ -142,7 +153,10 @@ class YappersApp:
         # parsing for REGISTER_SUCCESS
         resp = client.RegisterUsername(self.server_socket, name)
         if resp != "REGISTER_SUCCESS":
-            print("Username failed")
+            self._username_error.config(text=f'"{name}" is already taken. Please choose another.')
+            fresh = client.GetAvailableUsernames(self.server_socket)
+            self._username_cb.config(values=fresh)
+            self._uvar.set("")
             return
 
         self.username = name
@@ -164,7 +178,7 @@ class YappersApp:
 
         tk.Label(frame,
                  text=f"Welcome {self.username}!\nPlease select a channel to connect to.",
-                 bg=BG, fg=FG, font=("Helvetica", 13), justify="center").pack(pady=(0, 28))
+                 bg=BG, fg=FG, font=HF, justify="center").pack(pady=(0, 28))
 
         for ch_name, count in CHANNEL_INFO.items():
             self._channel_card(frame, ch_name, count)
@@ -178,9 +192,9 @@ class YappersApp:
         inner = tk.Frame(card, bg="white")
         inner.place(relx=0.08, rely=0.5, anchor="w")
         tk.Label(inner, text=ch_name, bg="white", fg="black",
-                 font=("Helvetica", 13, "bold")).pack(anchor="w")
+                 font=BF).pack(anchor="w")
         tk.Label(inner, text=f"{count} Active users", bg="white", fg="#555",
-                 font=("Helvetica", 10)).pack(anchor="w")
+                 font=BF).pack(anchor="w")
 
         for w in (card, inner, *inner.winfo_children()):
             w.bind("<Button-1>", lambda _e, ch=ch_name: self._join_channel(ch))
@@ -227,12 +241,12 @@ class YappersApp:
         top = tk.Frame(frame, bg=TOPBAR)
         top.pack(fill="x")
 
-        tk.Label(top, text=f"You are {self.username}",
-                 bg=TOPBAR, fg=FG, font=("Helvetica", 11)).pack(side="left", padx=16, pady=10)
+        tk.Label(top, text=f"USERNAME: {self.username}",
+                 bg=TOPBAR, fg=FG, font=LF).pack(side="left", padx=16, pady=10)
 
-        back = tk.Label(top, text=f"You are in {self.current_channel}  ∨",
+        back = tk.Label(top, text=f"Return to Lobby",
                         bg=TOPBAR, fg=ACCENT,
-                        font=("Helvetica", 11, "underline"), cursor="hand2")
+                        font=BF, cursor="hand2")
         back.pack(side="right", padx=16, pady=10)
         back.bind("<Button-1>", self._return_to_lobby)
 
@@ -255,13 +269,16 @@ class YappersApp:
         self._ptt_dot.pack(side="left", padx=(0, 6))
 
         self._ptt_btn = tk.Button(ptt, text="Push to talk",
-                                  bg=BTN, fg=FG, relief="flat", padx=12, pady=4)
+                                  bg=BTN, fg=FG, relief="flat", font=LF, padx=12, pady=4)
         self._ptt_btn.pack(side="left")
         self._ptt_btn.bind("<ButtonPress-1>",   self.start_talking)
         self._ptt_btn.bind("<ButtonRelease-1>", self.stop_talking)
 
         tk.Label(ptt, text="OR press spacebar",
-                 bg=TOPBAR, fg=DIM, font=("Helvetica", 8)).pack(side="left", padx=8)
+                 bg=TOPBAR, fg=DIM, font=LF).pack(side="left", padx=8)
+
+        self._ptt_msg = tk.Label(ptt, text="", bg=TOPBAR, fg=RED, font=LF)
+        self._ptt_msg.pack(side="left", padx=8)
 
         # Away toggle
         mut = tk.Frame(bot, bg=TOPBAR)
@@ -272,7 +289,7 @@ class YappersApp:
         self._away_dot.pack(side="left", padx=(0, 6))
 
         self._away_btn = tk.Button(mut, text="Set Away",
-                                   bg=BTN, fg=FG, relief="flat",
+                                   bg=BTN, fg=FG, relief="flat", font=LF,
                                    padx=12, pady=4, command=self.toggle_away)
         self._away_btn.pack(side="left")
 
@@ -292,7 +309,7 @@ class YappersApp:
             inner = tk.Frame(card, bg=CARD)
             inner.place(relx=0.08, rely=0.5, anchor="w")
             tk.Label(inner, text=uname, bg=CARD, fg=FG,
-                     font=("Helvetica", 11)).pack(side="left", padx=(0, 8))
+                     font=BF).pack(side="left", padx=(0, 8))
 
             dot = tk.Canvas(inner, width=20, height=20, bg=CARD, highlightthickness=0)
             dot.create_oval(2, 2, 18, 18, fill=self._color(status), tags="dot")
@@ -370,7 +387,12 @@ class YappersApp:
     # ══════════════════════════════════════════════════════════════════════════
 
     def start_talking(self, _event=None):
-        if self.is_away or self.is_talking.is_set() or self.current_channel is None:
+        if self.is_away:
+            if hasattr(self, '_ptt_msg'):
+                self._ptt_msg.config(text="Clear Away status to talk")
+                self.root.after(2500, lambda: self._ptt_msg.config(text="") if self._ptt_msg.winfo_exists() else None)
+            return
+        if self.is_talking.is_set() or self.current_channel is None:
             return
         if not (client.PYAUDIO_AVAILABLE and self.pa):
             return

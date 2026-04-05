@@ -14,8 +14,9 @@ RED    = "#f44336"
 CARD   = "#2b2b2b"
 
 # Can be changed later once we set theme
-HF = ("Consolas", 24, "bold")
-BF = ("Consolas", 12, "normal")
+HF = ("Consolas", 24, "bold")       #Header
+BF = ("Consolas", 12, "normal")     #Body
+LF = ("Consolas", 9, "bold")
 
 class ServerUI:
     def __init__(self, root: tk.Tk):
