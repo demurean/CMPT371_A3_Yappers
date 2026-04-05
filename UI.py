@@ -17,16 +17,6 @@ YELLOW = "#FFC107"
 RED    = "#f44336"
 ACCENT = "#aaaaff"
 
-# ── Mock data (TODO: replace with live server data) ────────────────────────────
-# TODO: populate from server LOBBY response
-AVAILABLE_USERNAMES = [
-    "Alpha","Bravo","Charlie","Delta","Echo","Foxtrot",
-    "Golf","Hotel","India","Juliet","Kilo","Lima",
-    "Mike","November","Oscar","Papa","Quebec","Romeo",
-    "Sierra","Tango","Uniform","Victor","Whiskey","X-Ray",
-    "Yankee","Zulu",
-]
-
 # TODO: get active user counts from server in real time
 CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
 
@@ -52,9 +42,9 @@ class YappersApp:
 
         # ── Server socket (TCP) ───────────────────────────────────────────────
         # TODO: connect once server integration is ready
-        # self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.server_socket.connect((client.SERVER_HOST, client.SERVER_PORT))
-        self.server_socket = None
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.connect((client.SERVER_HOST, client.SERVER_PORT))
+        # self.server_socket = None
 
         # {peer_username: (ip, port)}
         # TODO: populate from server JOIN response ("PEERS ip:port …")
@@ -129,9 +119,10 @@ class YappersApp:
         row.pack(pady=(0, 16))
 
         self._uvar = tk.StringVar()
-        # TODO: values come from server LOBBY response
+        # values come from server LOBBY response
+        usernames = client.GetAvailableUsernames(self.server_socket)
         ttk.Combobox(row, textvariable=self._uvar,
-                     values=AVAILABLE_USERNAMES,
+                     values= usernames,
                      state="readonly", width=28).pack(side="left", padx=(0, 4))
 
         tk.Button(row, text="✓", command=self._confirm_username,
