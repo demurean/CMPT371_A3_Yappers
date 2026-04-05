@@ -17,18 +17,10 @@ YELLOW = "#FFC107"
 RED    = "#f44336"
 ACCENT = "#aaaaff"
 
-# ── Mock data (TODO: replace with live server data) ────────────────────────────
-# TODO: populate from server LOBBY response
-AVAILABLE_USERNAMES = [
-    "Alpha","Bravo","Charlie","Delta","Echo","Foxtrot",
-    "Golf","Hotel","India","Juliet","Kilo","Lima",
-    "Mike","November","Oscar","Papa","Quebec","Romeo",
-    "Sierra","Tango","Uniform","Victor","Whiskey","X-Ray",
-    "Yankee","Zulu",
-]
-
+AVAILABLE_USERNAMES = []
 # TODO: get active user counts from server in real time
 CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
+# TODO: live client display once user connects (more like a client.py related thing)
 
 
 class YappersApp:
@@ -52,9 +44,9 @@ class YappersApp:
 
         # ── Server socket (TCP) ───────────────────────────────────────────────
         # TODO: connect once server integration is ready
-        # self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.server_socket.connect((client.SERVER_HOST, client.SERVER_PORT))
-        self.server_socket = None
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.connect((client.SERVER_HOST, client.SERVER_PORT))
+        # self.server_socket = None
 
         # {peer_username: (ip, port)}
         # TODO: populate from server JOIN response ("PEERS ip:port …")
@@ -129,9 +121,10 @@ class YappersApp:
         row.pack(pady=(0, 16))
 
         self._uvar = tk.StringVar()
-        # TODO: values come from server LOBBY response
+        # values come from server LOBBY response
+        AVAILABLE_USERNAMES = client.GetAvailableUsernames(self.server_socket)
         ttk.Combobox(row, textvariable=self._uvar,
-                     values=AVAILABLE_USERNAMES,
+                     values= AVAILABLE_USERNAMES,
                      state="readonly", width=28).pack(side="left", padx=(0, 4))
 
         tk.Button(row, text="✓", command=self._confirm_username,
@@ -146,14 +139,16 @@ class YappersApp:
         if not name:
             return
 
-        # TODO: call client.lobby(self.server_socket) here and parse REGISTER_SUCCESS
-        # self.server_socket.sendall(f"REGISTER {name}".encode())
-        # resp = self.server_socket.recv(1024).decode().strip()
-        # if resp != "REGISTER_SUCCESS": show error; return
+        # parsing for REGISTER_SUCCESS
+        resp = client.RegisterUsername(self.server_socket, name)
+        if resp != "REGISTER_SUCCESS":
+            print("Username failed")
+            return
 
         self.username = name
-        if name in AVAILABLE_USERNAMES:
-            AVAILABLE_USERNAMES.remove(name)   # mock: claim name locally
+        # if name in AVAILABLE_USERNAMES:
+        #     AVAILABLE_USERNAMES.remove(name)   # mock: claim name locally
+        # NOTE: ^^ should be handled server-side already
 
         self.show_channel_lobby()
 
@@ -200,10 +195,16 @@ class YappersApp:
         #         ip, port = peer_str.rsplit(":", 1)
         #         # NOTE: server needs to also send peer username alongside ip:port
         #         # self.peers[peer_username] = (ip, int(port))
-
+       
+        peers = client.JoinChannel(self.server_socket, ch_name)
+        self.peers = peers
         self.current_channel = ch_name
         self.channel_users = {self.username: "idle"}
-        # TODO: add real peers to channel_users once received from server
+
+        for x in peers: # peers[username] = ip, port
+            self.channel_users[x] = "idle"
+            print(x)
+        # NOTE: ... should another client being muted also... be shown to others.... that's a future feature for later
 
         self.show_channel()
 
