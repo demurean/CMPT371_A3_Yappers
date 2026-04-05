@@ -3,8 +3,9 @@ import socket
 import threading
 
 # Server Configuration
-HOST = '0.0.0.0' 
+HOST = '0.0.0.0'
 PORT = 5050
+AUDIO_PORT = 6000  # UDP port every client binds for peer audio
 MySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 MySocket.bind((HOST, PORT))
 MySocket.listen()
@@ -51,8 +52,7 @@ def handle_client(conn, addr):
                 else:
                     username = RequestedName
                     AvailableUsernames.remove(username)
-                    clientPort = addr[1] # i thought this is TCP port??? but clients use this port too for their UDP????
-                    OnlineUsers[username] = (addr[0], clientPort)
+                    OnlineUsers[username] = (addr[0], AUDIO_PORT)
                     conn.send(b"REGISTER_SUCCESS")
             
             # client chooses a channel to communicate in. server shares necessary info for the fun to begin
