@@ -34,7 +34,7 @@ class YappersApp:
         # ── App state ─────────────────────────────────────────────────────────
         self.username: str | None        = None
         self.current_channel: str | None = None
-        self.is_muted   = False
+        self.is_away    = False
         self.is_talking = threading.Event()   # set = currently talking
 
         # {username: status}  status ∈ {"idle","talking","muted"}
@@ -89,7 +89,7 @@ class YappersApp:
     def _color(status: str) -> str:
         return {
             "talking": GREEN,
-            "muted":   RED,
+            "away":    RED,
         }.get(status, YELLOW)
 
     def _open_playback(self):
@@ -263,18 +263,18 @@ class YappersApp:
         tk.Label(ptt, text="OR press spacebar",
                  bg=TOPBAR, fg=DIM, font=("Helvetica", 8)).pack(side="left", padx=8)
 
-        # Mute toggle
+        # Away toggle
         mut = tk.Frame(bot, bg=TOPBAR)
         mut.pack(side="left", padx=8, pady=12)
 
-        self._mute_dot = tk.Canvas(mut, width=20, height=20, bg=TOPBAR, highlightthickness=0)
-        self._mute_dot.create_oval(2, 2, 18, 18, fill=RED, tags="dot")
-        self._mute_dot.pack(side="left", padx=(0, 6))
+        self._away_dot = tk.Canvas(mut, width=20, height=20, bg=TOPBAR, highlightthickness=0)
+        self._away_dot.create_oval(2, 2, 18, 18, fill=YELLOW, tags="dot")
+        self._away_dot.pack(side="left", padx=(0, 6))
 
-        self._mute_btn = tk.Button(mut, text="Muted",
+        self._away_btn = tk.Button(mut, text="Set Away",
                                    bg=BTN, fg=FG, relief="flat",
-                                   padx=12, pady=4, command=self.toggle_mute)
-        self._mute_btn.pack(side="left")
+                                   padx=12, pady=4, command=self.toggle_away)
+        self._away_btn.pack(side="left")
 
     # ── Card grid ─────────────────────────────────────────────────────────────
 
@@ -332,6 +332,9 @@ class YappersApp:
             self.root.after(0, self._add_peer, username, ip, int(port))
         elif parts[0] == "LEAVE_NOTIFY" and len(parts) > 1:
             self.root.after(0, self._remove_peer, parts[1])
+        elif parts[0] == "STATUS_NOTIFY" and len(parts) > 1:
+            uname, status = parts[1].rsplit(":", 1)
+            self.root.after(0, self._set_status, uname, status)
 
     def _add_peer(self, username, ip, port):
         if not self.current_channel or username in self.channel_users:
@@ -351,6 +354,7 @@ class YappersApp:
 
     def _return_to_lobby(self, _event=None):
         self.stop_talking()
+        self.is_away = False
         if hasattr(self, '_listen_flag'):
             self._listen_flag.clear()
         try:
@@ -366,7 +370,7 @@ class YappersApp:
     # ══════════════════════════════════════════════════════════════════════════
 
     def start_talking(self, _event=None):
-        if self.is_muted or self.is_talking.is_set() or self.current_channel is None:
+        if self.is_away or self.is_talking.is_set() or self.current_channel is None:
             return
         if not (client.PYAUDIO_AVAILABLE and self.pa):
             return
@@ -405,17 +409,25 @@ class YappersApp:
                 pass
             self.record_stream = None
 
-    def toggle_mute(self):
-        self.is_muted = not self.is_muted
-        if self.is_muted:
-            self._mute_btn.config(text="Muted")
-            self._mute_dot.itemconfig("dot", fill=RED)
+    def toggle_away(self):
+        self.is_away = not self.is_away
+        if self.is_away:
+            self._away_btn.config(text="Clear Away")
+            self._away_dot.itemconfig("dot", fill=RED)
             self.stop_talking()
-            self._set_status(self.username, "muted")
+            self._set_status(self.username, "away")
+            try:
+                self.server_socket.sendall(b"STATUS away")
+            except Exception:
+                pass
         else:
-            self._mute_btn.config(text="Unmuted")
-            self._mute_dot.itemconfig("dot", fill=GREEN)
+            self._away_btn.config(text="Set Away")
+            self._away_dot.itemconfig("dot", fill=YELLOW)
             self._set_status(self.username, "idle")
+            try:
+                self.server_socket.sendall(b"STATUS active")
+            except Exception:
+                pass
 
     # ── Audio receive callback ────────────────────────────────────────────────
 

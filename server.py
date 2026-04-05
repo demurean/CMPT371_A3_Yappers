@@ -86,6 +86,17 @@ def handle_client(conn, addr):
                         except Exception:
                             pass
 
+            elif command == "STATUS":
+                if len(parts) >= 2 and channel:
+                    status = parts[1]  # "away" or "active"
+                    notify = f"STATUS_NOTIFY {username}:{status}\n"
+                    for member in list(Channels[channel]):
+                        if member != username and member in Connections:
+                            try:
+                                Connections[member].sendall(notify.encode())
+                            except Exception:
+                                pass
+
             # client exits channel and is in channel lobby
             elif command == "RETURN":
                 Channels[channel].pop(username, None)
