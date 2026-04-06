@@ -20,7 +20,6 @@ ACCENT = "#aaaaff"
 AVAILABLE_USERNAMES = []
 # TODO: get active user counts from server in real time
 CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
-# TODO: live client display once user connects (more like a client.py related thing)
 
 
 # Can be changed later once we set theme
@@ -48,10 +47,8 @@ class YappersApp:
         self.user_circles: dict[str, tk.Canvas] = {}
 
         # ── Server socket (TCP) ───────────────────────────────────────────────
-        # TODO: connect once server integration is ready
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.connect((client.SERVER_HOST, client.SERVER_PORT))
-        # self.server_socket = None
 
         # {peer_username: (ip, port)}
         # TODO: populate from server JOIN response ("PEERS ip:port …")
@@ -179,7 +176,9 @@ class YappersApp:
         tk.Label(frame,
                  text=f"Welcome {self.username}!\nPlease select a channel to connect to.",
                  bg=BG, fg=FG, font=HF, justify="center").pack(pady=(0, 28))
-
+        
+        # updating CHANNEL_INFO as well
+        CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
         for ch_name, count in CHANNEL_INFO.items():
             self._channel_card(frame, ch_name, count)
 
@@ -209,7 +208,6 @@ class YappersApp:
         #         ip, port = peer_str.rsplit(":", 1)
         #         # NOTE: server needs to also send peer username alongside ip:port
         #         # self.peers[peer_username] = (ip, int(port))
-       
         peers = client.JoinChannel(self.server_socket, ch_name)
         self.peers = peers
         self.current_channel = ch_name

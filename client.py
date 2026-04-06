@@ -2,8 +2,6 @@
 # client then proceeds to broadcast to other clients audio data
 
 import socket
-import sys
-import threading
 
 try:
     import pyaudio
@@ -31,13 +29,13 @@ def GetAvailableUsernames(s):
     data = s.recv(1024).decode().strip()
     parts = data.split()
     if parts[0] == "USERNAMES":
+        # TODO: put alphabetical order for the parts 
         return parts[1:]
     else:
         return []
 
 def RegisterUsername(s, username):
-    message = f"REGISTER {username}" #put UDP_port here?
-    # order of events is so weird. UDP_Port ^^ is 0, then its 6000.
+    message = f"REGISTER {username}"
     s.sendall(message.encode())
     response = s.recv(1024).decode().strip()
     return response # REGISTER_SUCCESS or REGISTER_FAIL
@@ -55,7 +53,19 @@ def JoinChannel(s, channel):
             peers[username] = (ip, int(port)) 
     return peers
 
-# TODO: make receive loop to update UI.py with any changes in channel's clients
+def GetUserCountperChannel(s):
+    message = f"GET_COUNT"
+    s.sendall(message.encode())
+    response = s.recv(1024).decode().strip()
+    argument, payload = response.split(" ", 1)
+    CountperChannel = {}
+
+    if argument == "CHANNEL_COUNT":
+        entries = payload.split("|")
+        for entry in entries:
+            ChannelName, ChannelCount = entry.rsplit(":", 1)
+            CountperChannel[ChannelName] = ChannelCount
+    return CountperChannel
 
 # def start_app():
 #     print("starting the application...")

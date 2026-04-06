@@ -109,6 +109,17 @@ def handle_client(conn, addr):
                         except Exception:
                             pass
                 channel = None
+            
+            # if client requests usercount in each channel -- for lobby use
+            elif command == "GET_COUNT":
+                entries = []
+                for ch in Channels:
+                    count = len(Channels[ch])
+                    entries.append(f"{ch}:{count}")
+                CountString = f"CHANNEL_COUNT " + "|".join(entries) 
+                conn.send(CountString.encode())
+
+                
     
     # if any error happens. go here
     except Exception as e:
