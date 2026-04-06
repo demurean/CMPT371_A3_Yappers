@@ -29,8 +29,8 @@ def GetAvailableUsernames(s):
     data = s.recv(1024).decode().strip()
     parts = data.split()
     if parts[0] == "USERNAMES":
-        # TODO: put alphabetical order for the parts 
-        return parts[1:]
+        usernames = sorted(parts[1:]) # list always in alphabetical order
+        return usernames
     else:
         return []
 
