@@ -47,37 +47,31 @@ A real-time **push-to-talk (PTT) voice chat application** implemented in Python 
 ```
 
 #### Install Python dependencies
+PyAudio
 
 ```bash
-# requirements file attached
 pip3 install -r requirements.txt
 ```
 
-#### Run the server
+#### Run the app
 
+1. run the server once
 ```bash
-# to start the server
-python server.py
+python serverUI.py
 ```
-
-#### Connect clients
-
+2. open however much clients you want
 Open a new terminal for each client (on the same machine or different machines on the same network).
 
 ```bash
-python client.py
+python clientUI.py
 ```
 
-**Instructions to Connect:**
-- #TODO
-
 #### Push to talk
-
-- #TODO
+Press ```space``` button to talk.
 
 #### Stop
-
-- #TODO
+Clients can close the application to disconnect.
+Server app can click the ```End Server``` button to close the server, or close the application.
 
 ---
 
@@ -85,10 +79,17 @@ python client.py
 
 ```
 CMPT371_A3_Yappers/
+├── assets/
+│    ├── wireframe.png # sketch of the GUI to reference   
+│    └── 
+│
 ├── server.py          # server -> registration, relay, timeout
-├── client.py          # client -> audio capture/playback, Tkinter GUI
+├── serverUI.py        # server interface with Tkinter GUI.
+├── client.py          # client -> audio capture/playback, communicates to server 
+├── clientUI.py        # client interface with Tkinter GUI.
 ├── requirements.txt   # dependency list
 ├── notes.txt          # planning and meeting notes
+├── A3_details.pdf     # assignment description and guideline
 └── README.md          # this file
 ```
 
@@ -114,3 +115,4 @@ server.py is not meant to be scaled up on. This implementation(with no JSON) is 
 ### References & Citations
 - Double checked for edge cases in server.py with ChatGPT
 - Tkinter tutorial to make the python app https://www.pythontutorial.net/tkinter/
+- other references on server setting up from resources provided in assignment description
