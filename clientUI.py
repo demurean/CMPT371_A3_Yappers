@@ -127,11 +127,15 @@ class YappersApp:
 
         self._uvar = tk.StringVar()
         # values come from server LOBBY_ALL and LOBBY_AVAIL response
-        # ALL_USERNAMES = client.GetAllUsernames(self.server_socket)
+        ALL_USERNAMES = client.GetAllUsernames(self.server_socket)
         AVAILABLE_USERNAMES = client.GetAvailableUsernames(self.server_socket)
+        used_names = []
+        for name in ALL_USERNAMES:
+            if name not in AVAILABLE_USERNAMES:
+                used_names.append(name)
         self._username_cb = ttk.Combobox(row, textvariable=self._uvar,
-                                         values=AVAILABLE_USERNAMES,
-                                         state="readonly", width=28)
+                                         values=ALL_USERNAMES,
+                                         state="readonly", width=28) 
         self._username_cb.pack(side="left", padx=(0, 4))
 
         tk.Button(row, text="✓", command=self._confirm_username,
@@ -181,10 +185,17 @@ class YappersApp:
                  text=f"Welcome {self.username}!\nPlease select a channel to connect to.",
                  bg=BG, fg=FG, font=HF, justify="center").pack(pady=(0, 28))
         
-        # updating CHANNEL_INFO as well
+        # updates CHANNEL_INFO as well
+        # CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
+        self.channel_labels = {}
         CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
         for ch_name, count in CHANNEL_INFO.items():
-            self._channel_card(frame, ch_name, count)
+            label = self._channel_card(frame, ch_name, count)
+            self.channel_labels[ch_name] = label # what is this for
+
+        self._listen_flag = threading.Event()
+        self._listen_flag.set()
+        threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
 
     def _channel_card(self, parent: tk.Frame, ch_name: str, count: int):
         card = tk.Frame(parent, bg="white", width=320, height=80,
@@ -195,12 +206,36 @@ class YappersApp:
         inner = tk.Frame(card, bg="white")
         inner.place(relx=0.08, rely=0.5, anchor="w")
         tk.Label(inner, text=ch_name, bg="white", fg="black",
-                 font=BF).pack(anchor="w")
-        tk.Label(inner, text=f"{count} Active users", bg="white", fg="#555",
-                 font=BF).pack(anchor="w")
+                 font=BF).pack()
+        # .pack(anchor="w")
+        count_label = tk.Label(inner, text=f"{count} Active users", bg="white", fg="#555",
+                 font=BF)
+        # .pack(anchor="w")
+        count_label.pack()
 
         for w in (card, inner, *inner.winfo_children()):
             w.bind("<Button-1>", lambda _e, ch=ch_name: self._join_channel(ch))
+        return count_label
+
+    # ── Server Channel Listener ────────────────────────────────────────────────────────────
+    def _ServerChannel_listener(self):
+        # self.server_socket.settimeout(1.0)
+        while self._listen_flag.is_set():
+            try:
+                CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
+                self.root.after(0, self._update_channel_counts, CHANNEL_INFO)
+            except socket.timeout:
+                continue
+            except Exception:
+                print("Listener error")
+                break
+
+    def _update_channel_counts(self, CHANNEL_INFO):
+        for ch_name, count in CHANNEL_INFO.items():
+            label = self.channel_labels.get(ch_name)
+            if label and label.winfo_exists():
+                label.config(text=f"{count} Active users")
+    # ──────────────────────────────────────────────────────────────
 
     def _join_channel(self, ch_name: str):
         # TODO: call client.channel_lobby(self.server_socket) — adapted for GUI:
@@ -212,6 +247,7 @@ class YappersApp:
         #         ip, port = peer_str.rsplit(":", 1)
         #         # NOTE: server needs to also send peer username alongside ip:port
         #         # self.peers[peer_username] = (ip, int(port))
+
         peers = client.JoinChannel(self.server_socket, ch_name, self.username)
         self.peers = peers
         # print("peers from __join_channel ", peers)
@@ -235,6 +271,8 @@ class YappersApp:
 
     def show_channel(self):
         self._clear()
+        if hasattr(self, "_listen_flag"):
+            self._listen_flag.clear() # clears listening flag bcs out of the channel lobby and entering the client tts lobby, which also uses listening flag
         frame = tk.Frame(self.root, bg=BG)
         frame.pack(fill="both", expand=True)
         self._frame = frame
@@ -321,7 +359,7 @@ class YappersApp:
 
     def _set_status(self, uname: str, status: str):
         self.channel_users[uname] = status
-        print("from _set_status, what status: ", status)
+        # print("from _set_status, what status: ", status)
         if uname in self.user_circles:
             self.user_circles[uname].itemconfig("dot", fill=self._color(status))
 
