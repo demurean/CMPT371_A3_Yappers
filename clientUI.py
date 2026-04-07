@@ -229,11 +229,12 @@ class YappersApp:
         CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
         for ch_name, count in CHANNEL_INFO.items():
             label = self._channel_card(frame, ch_name, count)
-            self.channel_labels[ch_name] = label # what is this for
+            self.channel_labels[ch_name] = label # nvm i rember
 
-        self._listen_flag = threading.Event()
-        self._listen_flag.set()
-        threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
+        if not self._listen_flag:
+            self._listen_flag = threading.Event()
+            self._listen_flag.set()
+            threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
 
     def _channel_card(self, parent: tk.Frame, ch_name: str, count: int):
         card = tk.Frame(parent, bg="white", width=320, height=80,
