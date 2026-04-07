@@ -56,8 +56,9 @@ def handle_client(conn, addr):
                     conn.send(b"REGISTER_FAIL")
                 else:
                     username = RequestedName
+                    udp_port = int(parts[2]) if len(parts) > 2 else AUDIO_PORT
                     AvailableUsernames.remove(username)
-                    OnlineUsers[username] = (addr[0], AUDIO_PORT)
+                    OnlineUsers[username] = (addr[0], udp_port)
                     Connections[username] = conn
                     conn.send(b"REGISTER_SUCCESS")
             
@@ -81,7 +82,8 @@ def handle_client(conn, addr):
                 conn.send(response.encode())
 
                 # notify existing members that a new peer joined
-                notify = f"JOIN_NOTIFY {username}:{addr[0]}:{AUDIO_PORT}\n"
+                ip, port = OnlineUsers[username]
+                notify = f"JOIN_NOTIFY {username}:{ip}:{port}\n"
                 for member in list(Channels[channel]):
                     if member != username and member in Connections:
                         try:

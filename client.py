@@ -44,8 +44,8 @@ def GetAvailableUsernames(s):
     else:
         return []
 
-def RegisterUsername(s, username):
-    message = f"REGISTER {username}"
+def RegisterUsername(s, username, udp_port):
+    message = f"REGISTER {username} {udp_port}"
     s.sendall(message.encode())
     response = s.recv(1024).decode().strip()
     return response # REGISTER_SUCCESS or REGISTER_FAIL
@@ -92,13 +92,12 @@ def GetUserCountperChannel(s):
 ## 2. AUDIO — P2P via UDP
 
 def setup_udp():
-    """Create and bind the UDP socket this client listens on for incoming audio."""
+    """Create and bind the UDP socket this client listens on for incoming audio.
+    Binds to port 0 so the OS assigns a unique port — required when multiple
+    clients run on the same machine (avoids port-6000 collision)."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(('', AUDIO_PORT))
+    sock.bind(('', 0))   # OS picks a free port
     sock.settimeout(1.0)
-    # UDP_PORT = sock.getsockname()[1]
-    # print(UDP_PORT)
     return sock
 
 def send_audio_loop(record_stream, udp_sock, peers, username, is_talking_flag):
@@ -113,8 +112,8 @@ def send_audio_loop(record_stream, udp_sock, peers, username, is_talking_flag):
             audio = record_stream.read(CHUNK, exception_on_overflow=False)
             header = username.encode().ljust(16)   # fixed 16-byte sender header
             packet = header + audio
-            for _peer, (ip, _port) in peers.items():
-                udp_sock.sendto(packet, (ip, AUDIO_PORT))
+            for _peer, (ip, port) in peers.items():
+                udp_sock.sendto(packet, (ip, port))
         except Exception as e:
             print(f"send_audio error: {e}")
             break

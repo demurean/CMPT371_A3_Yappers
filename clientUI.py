@@ -152,7 +152,7 @@ class YappersApp:
             return
 
         # parsing for REGISTER_SUCCESS
-        resp = client.RegisterUsername(self.server_socket, name)
+        resp = client.RegisterUsername(self.server_socket, name, self.udp_sock.getsockname()[1])
         if resp != "REGISTER_SUCCESS":
             self._username_error.config(text=f'"{name}" is already taken. Please choose another.')
             fresh = client.GetAvailableUsernames(self.server_socket)
