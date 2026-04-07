@@ -231,10 +231,9 @@ class YappersApp:
             label = self._channel_card(frame, ch_name, count)
             self.channel_labels[ch_name] = label # nvm i rember
 
-        if not self._listen_flag:
-            self._listen_flag = threading.Event()
-            self._listen_flag.set()
-            threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
+        self._listen_flag_lobby = threading.Event()
+        self._listen_flag_lobby.set()
+        threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
 
     def _channel_card(self, parent: tk.Frame, ch_name: str, count: int):
         card = tk.Frame(parent, bg="white", width=320, height=80,
@@ -259,7 +258,7 @@ class YappersApp:
     # ── Server Channel Listener ────────────────────────────────────────────────────────────
     def _ServerChannel_listener(self):
         # self.server_socket.settimeout(1.0)
-        while self._listen_flag.is_set():
+        while self._listen_flag_lobby.is_set():
             try:
                 CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
                 self.root.after(0, self._update_channel_counts, CHANNEL_INFO)
@@ -300,8 +299,8 @@ class YappersApp:
 
     def show_channel(self):
         self._clear()
-        if hasattr(self, "_listen_flag"):
-            self._listen_flag.clear() # clears listening flag bcs out of the channel lobby and entering the client tts lobby, which also uses listening flag
+        if hasattr(self, "_listen_flag_lobby"):
+            self._listen_flag_lobby.clear() # clears listening flag bcs out of the channel lobby and entering the client tts lobby, which also uses listening flag
         frame = tk.Frame(self.root, bg=BG)
         frame.pack(fill="both", expand=True)
         self._frame = frame
