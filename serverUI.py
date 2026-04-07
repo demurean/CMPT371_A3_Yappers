@@ -97,6 +97,8 @@ class ServerUI:
         """Stop accepting connections and exit."""
         print("Server shutting down...")
         try:
+            if server.OnlineUsers.keys() != 0: # should do while? or nah
+                server.TellClientsToShutDownToo()
             server.MySocket.close()
         except Exception:
             pass

@@ -50,37 +50,39 @@ def RegisterUsername(s, username, udp_port):
     response = s.recv(1024).decode().strip()
     return response # REGISTER_SUCCESS or REGISTER_FAIL
 
-def JoinChannel(s, channel, myUsername):
+def JoinChannel(s, channel):
     message = f"JOIN {channel}"
     s.sendall(message.encode())
-    response = s.recv(1024).decode().strip()
-    parts = response.split()
-    peers = {}
+    # response = s.recv(1024).decode().strip()
+    # parts = response.split()
+    # peers = {}
 
-    if parts[0] == "PEERS":
-        for peer_str in parts[1:]:
-            username, ip, port = peer_str.rsplit(":", 2)
-            if username == myUsername: # global variable Username tracking is hard... so i use arguement
-                continue
-            else:
-                peers[username] = (ip, int(port)) 
-        # here, removes the self from peers list, so doesn't echo
-        # print("peers from JoinChannel ", peers)
-    return peers
+    # if parts[0] == "PEERS":
+    #     for peer_str in parts[1:]:
+    #         username, ip, port = peer_str.rsplit(":", 2)
+    #         if username == myUsername: # global variable Username tracking is hard... so i use arguement
+    #             continue
+    #         else:
+    #             peers[username] = (ip, int(port)) 
+    #     # here, removes the self from peers list, so doesn't echo
+    #     # print("peers from JoinChannel ", peers)
+    # return peers
+### all recv is moved to the event listener as not to compete for socket resource
 
 def GetUserCountperChannel(s):
-    message = f"GET_COUNT"
+    message = "GET_COUNT"
     s.sendall(message.encode())
-    response = s.recv(1024).decode().strip()
-    argument, payload = response.split(" ", 1)
-    CountperChannel = {}
+    ### all moved to the server listener
+    # response = s.recv(1024).decode().strip()
+    # argument, payload = response.split(" ", 1)
+    # CountperChannel = {}
 
-    if argument == "CHANNEL_COUNT":
-        entries = payload.split("|")
-        for entry in entries:
-            ChannelName, ChannelCount = entry.rsplit(":", 1)
-            CountperChannel[ChannelName] = ChannelCount
-    return CountperChannel
+    # if argument == "CHANNEL_COUNT":
+    #     entries = payload.split("|")
+    #     for entry in entries:
+    #         ChannelName, ChannelCount = entry.rsplit(":", 1)
+    #         CountperChannel[ChannelName] = ChannelCount
+    # return CountperChannel
 
 # def start_app():
 #     print("starting the application...")

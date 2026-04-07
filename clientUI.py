@@ -17,9 +17,9 @@ YELLOW = "#FFC107"
 RED    = "#f44336"
 ACCENT = "#aaaaff"
 
-ALL_USERNAMES = []
 AVAILABLE_USERNAMES = []
 CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
+PEERS = {}
 
 
 # Can be changed later once we set theme
@@ -52,9 +52,9 @@ class YappersApp:
         # ── Server socket (TCP) ───────────────────────────────────────────────
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.connect((client.SERVER_HOST, client.SERVER_PORT))
+        self.listener_started = False
 
         # {peer_username: (ip, port)}
-        # TODO: populate from server JOIN response ("PEERS ip:port …")
         self.peers: dict[str, tuple[str, int]] = {}
 
         # ── UDP + PyAudio ────────────────────────────────────────────────────
@@ -127,14 +127,15 @@ class YappersApp:
 
         self._uvar = tk.StringVar()
         # values come from server LOBBY_ALL and LOBBY_AVAIL response
-        ALL_USERNAMES = client.GetAllUsernames(self.server_socket)
+        AllUsernames = client.GetAllUsernames(self.server_socket)
         AVAILABLE_USERNAMES = client.GetAvailableUsernames(self.server_socket)
         used_names = []
-        for name in ALL_USERNAMES:
+        for name in AllUsernames:
             if name not in AVAILABLE_USERNAMES:
                 used_names.append(name)
+                # TODO: unfinished. greying out the used names
         self._username_cb = ttk.Combobox(row, textvariable=self._uvar,
-                                         values=ALL_USERNAMES,
+                                         values=AVAILABLE_USERNAMES,
                                          state="readonly", width=28) 
         self._username_cb.pack(side="left", padx=(0, 4))
 
@@ -169,6 +170,13 @@ class YappersApp:
         #     AVAILABLE_USERNAMES.remove(name)   # mock: claim name locally
         # NOTE: ^^ should be handled server-side already
 
+        if not self.listener_started:
+            self._listen_flag = threading.Event()
+            self._listen_flag.set()
+            threading.Thread(target=self._server_listener, daemon=True).start()
+            self.listener_started = True
+        # begin event listener once already successfully connected to server as a valid username
+
         self.show_channel_lobby()
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -188,14 +196,10 @@ class YappersApp:
         # updates CHANNEL_INFO as well
         # CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
         self.channel_labels = {}
-        CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
+        client.GetUserCountperChannel(self.server_socket)
         for ch_name, count in CHANNEL_INFO.items():
             label = self._channel_card(frame, ch_name, count)
             self.channel_labels[ch_name] = label # what is this for
-
-        self._listen_flag = threading.Event()
-        self._listen_flag.set()
-        threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
 
     def _channel_card(self, parent: tk.Frame, ch_name: str, count: int):
         card = tk.Frame(parent, bg="white", width=320, height=80,
@@ -218,17 +222,18 @@ class YappersApp:
         return count_label
 
     # ── Server Channel Listener ────────────────────────────────────────────────────────────
-    def _ServerChannel_listener(self):
-        # self.server_socket.settimeout(1.0)
-        while self._listen_flag.is_set():
-            try:
-                CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
-                self.root.after(0, self._update_channel_counts, CHANNEL_INFO)
-            except socket.timeout:
-                continue
-            except Exception:
-                print("Listener error")
-                break
+    ### SERVER LISTENER IS MOVED TO ONE FUNCTION. BCS THERE CAN ONLY BE ONE LISTENER PER SOCKET
+    # def _ServerChannel_listener(self):
+    #     # self.server_socket.settimeout(1.0)
+    #     while self._listen_flag.is_set():
+    #         try:
+    #             CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
+    #             self.root.after(0, self._update_channel_counts, CHANNEL_INFO)
+    #         except socket.timeout:
+    #             continue
+    #         except Exception:
+    #             print("Listener error")
+    #             break
 
     def _update_channel_counts(self, CHANNEL_INFO):
         for ch_name, count in CHANNEL_INFO.items():
@@ -238,32 +243,22 @@ class YappersApp:
     # ──────────────────────────────────────────────────────────────
 
     def _join_channel(self, ch_name: str):
-        # TODO: call client.channel_lobby(self.server_socket) — adapted for GUI:
-        # self.server_socket.sendall(f"JOIN {ch_name}".encode())
-        # resp = self.server_socket.recv(1024).decode().strip()
-        # parts = resp.split()
-        # if parts[0] == "PEERS":
-        #     for peer_str in parts[1:]:          # "ip:port"
-        #         ip, port = peer_str.rsplit(":", 1)
-        #         # NOTE: server needs to also send peer username alongside ip:port
-        #         # self.peers[peer_username] = (ip, int(port))
-
-        peers = client.JoinChannel(self.server_socket, ch_name, self.username)
-        self.peers = peers
-        # print("peers from __join_channel ", peers)
+        client.JoinChannel(self.server_socket, ch_name)
+        self.peers = PEERS
+        # print("peers from __join_channel ", PEERS)
         self.current_channel = ch_name
         self.channel_users = {self.username: "idle"}
 
-        for x in peers: # peers[username] = ip, port
+        for x in PEERS: # PEERS[username] = ip, port
             self.channel_users[x] = "idle"
             print(x)
 
         self.show_channel()
 
         # start listener for push notifications (JOIN_NOTIFY / LEAVE_NOTIFY)
-        self._listen_flag = threading.Event()
-        self._listen_flag.set()
-        threading.Thread(target=self._server_listener, daemon=True).start()
+        # self._listen_flag = threading.Event()
+        # self._listen_flag.set()
+        # threading.Thread(target=self._server_listener, daemon=True).start()
 
     # ══════════════════════════════════════════════════════════════════════════
     # SCREEN 3 — In channel
@@ -271,8 +266,8 @@ class YappersApp:
 
     def show_channel(self):
         self._clear()
-        if hasattr(self, "_listen_flag"):
-            self._listen_flag.clear() # clears listening flag bcs out of the channel lobby and entering the client tts lobby, which also uses listening flag
+        # if hasattr(self, "_listen_flag"):
+        #     self._listen_flag.clear() 
         frame = tk.Frame(self.root, bg=BG)
         frame.pack(fill="both", expand=True)
         self._frame = frame
@@ -372,6 +367,8 @@ class YappersApp:
             try:
                 data = self.server_socket.recv(1024).decode()
                 if not data:
+                    print("Server disconnected")
+                    self.root.after(0, self._handle_shutdown)
                     break
                 buf += data
                 while "\n" in buf:
@@ -379,7 +376,8 @@ class YappersApp:
                     self._handle_push(line.strip())
             except socket.timeout:
                 continue
-            except Exception:
+            except Exception as e:
+                print("Listener error: ", e)
                 break
 
     def _handle_push(self, msg):
@@ -394,6 +392,24 @@ class YappersApp:
         elif parts[0] == "STATUS_NOTIFY" and len(parts) > 1:
             uname, status = parts[1].rsplit(":", 1)
             self.root.after(0, self._set_status, uname, status)
+        elif parts[0] == "CHANNEL_COUNT":
+            CountperChannel = {}
+            _, payload = msg.split(" ", 1)
+            entries = payload.split("|")
+            for entry in entries:
+                ChannelName, ChannelCount = entry.rsplit(":", 1)
+                CountperChannel[ChannelName] = int(ChannelCount)
+            CHANNEL_INFO = CountperChannel.copy()
+            self.root.after(0, self._update_channel_counts, CHANNEL_INFO)
+        elif parts[0] == "SHUTDOWN_FROM_SERVER":
+            self.root.after(0, self._on_close)
+        elif parts[0] == "PEERS":
+            for x in parts[1:]:
+                username, ip, port = x.rsplit(":", 2)
+            if username != self.username:
+                PEERS[username] = (ip, int(port)) 
+    #     # here, removes the self from peers list, so doesn't echo
+    #     # print("peers from JoinChannel ", PEERS)
 
     def _add_peer(self, username, ip, port):
         if not self.current_channel or username in self.channel_users:
@@ -414,8 +430,8 @@ class YappersApp:
     def _return_to_lobby(self, _event=None):
         self.stop_talking()
         self.is_away = False
-        if hasattr(self, '_listen_flag'):
-            self._listen_flag.clear()
+        # if hasattr(self, '_listen_flag'):
+        #     self._listen_flag.clear()
         try:
             self.server_socket.sendall(b"RETURN")
         except Exception:

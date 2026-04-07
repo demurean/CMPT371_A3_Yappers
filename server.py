@@ -19,7 +19,7 @@ Connections = {}  # username -> TCP conn, for push notifications
 Channels = {
     "Channel 1": {},
     "Channel 2": {}
-} # channels are fixed ports btw.
+} # channels are fixed ports btw. NOTE: are they though?
 
 # function handling client requests & identification: Registering and Keeping Track
 # alongside broadcasting client IP to facilitate p2p amongst themselves.
@@ -162,6 +162,15 @@ def start_server():
         # use threading per client
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
+
+def TellClientsToShutDownToo():
+    message = "SHUTDOWN_FROM_SERVER"
+    for x in OnlineUsers:
+        Connections[x].sendall(message.encode())
+    # and then client follows disconnect procedure from clientside.
+    # then serverUI.py can shutdown in peace
+    # NOTE: client has to be actively listening for this the entire time...
+
 
 if __name__ == "__main__":
     start_server()

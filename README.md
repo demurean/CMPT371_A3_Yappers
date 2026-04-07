@@ -116,3 +116,4 @@ server.py is not meant to be scaled up on. This implementation(with no JSON) is 
 - Double checked for edge cases in server.py with ChatGPT
 - Tkinter tutorial to make the python app https://www.pythontutorial.net/tkinter/
 - other references on server setting up from resources provided in assignment description
+- ChatGPT for fixing the break-up of server.py to clientUI.py and client.py (most notably when the channels dont show up)
