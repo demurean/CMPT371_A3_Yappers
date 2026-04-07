@@ -40,7 +40,7 @@ def RegisterUsername(s, username):
     response = s.recv(1024).decode().strip()
     return response # REGISTER_SUCCESS or REGISTER_FAIL
 
-def JoinChannel(s, channel):
+def JoinChannel(s, channel, myUsername):
     message = f"JOIN {channel}"
     s.sendall(message.encode())
     response = s.recv(1024).decode().strip()
@@ -50,9 +50,12 @@ def JoinChannel(s, channel):
     if parts[0] == "PEERS":
         for peer_str in parts[1:]:
             username, ip, port = peer_str.rsplit(":", 2)
-            peers[username] = (ip, int(port)) 
+            if username == myUsername: # global variable Username tracking is hard... so arguement
+                continue
+            else:
+                peers[username] = (ip, int(port)) 
         # here, removes the self from peers list, so doesn't echo
-        peers.pop(Username, None)
+        print("peers from JoinChannel ", peers)
     return peers
 
 def GetUserCountperChannel(s):

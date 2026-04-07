@@ -18,7 +18,6 @@ RED    = "#f44336"
 ACCENT = "#aaaaff"
 
 AVAILABLE_USERNAMES = []
-# TODO: get active user counts from server in real time
 CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
 
 
@@ -208,15 +207,15 @@ class YappersApp:
         #         ip, port = peer_str.rsplit(":", 1)
         #         # NOTE: server needs to also send peer username alongside ip:port
         #         # self.peers[peer_username] = (ip, int(port))
-        peers = client.JoinChannel(self.server_socket, ch_name)
+        peers = client.JoinChannel(self.server_socket, ch_name, self.username)
         self.peers = peers
+        print("peers from __join_channel ", peers)
         self.current_channel = ch_name
         self.channel_users = {self.username: "idle"}
 
         for x in peers: # peers[username] = ip, port
             self.channel_users[x] = "idle"
             print(x)
-        # NOTE: ... should another client being muted also... be shown to others.... that's a future feature for later
 
         self.show_channel()
 
@@ -407,6 +406,8 @@ class YappersApp:
 
         self.is_talking.set()
         self._set_status(self.username, "talking")
+
+        print("Peers from start_talking", self.peers)
 
         threading.Thread(
             target=client.send_audio_loop,
