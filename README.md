@@ -106,8 +106,9 @@ CMPT371_A3_Yappers/
 
 ### Limitations & Known Issues
 server.py is not meant to be scaled up on. This implementation(with no JSON) is expected to stay at its current size
+No client menu so client app can start first without server: so server MUST BE STARTED FIRST
 BUG: breakdown on client.py GetUserCountperChannel() due to simultaneous use of socket for recv and runtime error
-no client menu so client app can start first without server: so server MUST BE STARTED FIRST
+NOTE: unknown maximum clients that can connect to the server
 
 ---
 
