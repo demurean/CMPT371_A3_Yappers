@@ -372,6 +372,8 @@ class YappersApp:
             try:
                 data = self.server_socket.recv(1024).decode()
                 if not data:
+                    # server closed the connection
+                    self.root.after(0, self._on_server_disconnect)
                     break
                 buf += data
                 while "\n" in buf:
@@ -380,8 +382,22 @@ class YappersApp:
             except socket.timeout:
                 continue
             except Exception:
+                self.root.after(0, self._on_server_disconnect)
                 break
 
+    def _on_server_disconnect(self):
+        #Called on the main thread when the server closes the connection.
+        self.current_channel = None
+        self.channel_users.clear()
+        self.peers.clear()
+        self._clear()
+        frame = tk.Frame(self.root, bg=BG)
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+        self._frame = frame
+        tk.Label(frame, text="Disconnected from server.",
+                 bg=BG, fg=RED, font=HF).pack(pady=(0, 8))
+        tk.Label(frame, text="The server has shut down.",
+                 bg=BG, fg=DIM, font=LF).pack()
     def _handle_push(self, msg):
         parts = msg.split()
         if not parts:
