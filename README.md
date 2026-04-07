@@ -81,7 +81,10 @@ Server app can click the ```End Server``` button to close the server, or close t
 CMPT371_A3_Yappers/
 ├── assets/
 │    ├── wireframe.png # sketch of the GUI to reference   
-│    └── 
+│    ├── CLIENTlogo.ico # logo for client app
+│    ├── logo.png
+│    ├── SERVERlogo.ico # logo for server app
+│    └── EvilLogo.png
 │
 ├── server.py          # server -> registration, relay, timeout
 ├── serverUI.py        # server interface with Tkinter GUI.

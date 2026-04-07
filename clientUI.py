@@ -113,7 +113,7 @@ class YappersApp:
     # SCREEN 1 — Username lobby
     # ══════════════════════════════════════════════════════════════════════════
 
-    def show_username_lobby(self):
+    def show_username_lobby(self,  _event=None):
         self._clear()
         frame = tk.Frame(self.root, bg=BG)
         frame.place(relx=0.5, rely=0.5, anchor="center")
@@ -133,8 +133,9 @@ class YappersApp:
         for name in ALL_USERNAMES:
             if name not in AVAILABLE_USERNAMES:
                 used_names.append(name)
+            # TODO: greying out the used usernames
         self._username_cb = ttk.Combobox(row, textvariable=self._uvar,
-                                         values=ALL_USERNAMES,
+                                         values=AVAILABLE_USERNAMES,
                                          state="readonly", width=28) 
         self._username_cb.pack(side="left", padx=(0, 4))
 
@@ -146,9 +147,46 @@ class YappersApp:
         self._username_error.pack(pady=(8, 0))
 
         # TODO Tutorial / Info
-        tk.Label(frame, text="link to dif page for tutorial",
+        label = tk.Label(frame, text="link to dif page for tutorial",
                  bg=BG, fg=DIM, font=LF,
-                 cursor="hand2").pack()
+                 cursor="hand2")
+        label.bind("<Button-1>", self.tutorial_clicked)
+        label.pack(pady=20)
+    
+    def tutorial_clicked(self, _event=None):
+        print("Label clicked!")
+        self._clear()
+
+        frame = tk.Frame(self.root, bg=BG)
+        frame.pack(fill="both", expand=True)
+        self._frame = frame
+
+        top = tk.Frame(frame, bg=TOPBAR)
+        top.pack(fill="x")
+
+        rest = tk.Frame(frame, bg=BG)
+        rest.place(relx=0.07, rely=0.1)
+
+        tk.Label(rest, text="Yappers",
+                 bg=BG, fg=FG, font=HF).pack(pady=(0, 16))
+        
+        row = tk.Frame(rest, bg=BG)
+        row.pack(pady=(0, 16))
+        tk.Label(rest, text="An app made by Arielle and Tasha for CMPT 371 Spring", bg=BG, fg=FG, font=LF).pack(pady=(0,5))
+
+        tk.Label(rest, text="1. Choose a username, each active client has a unique username from other online clients", bg=BG, fg=FG, font=LF).pack(pady=10)
+        tk.Label(rest, text="2. Choose a channel to tune in to", bg=BG, fg=FG, font=LF).pack(pady=10)
+        tk.Label(rest, text="3. See who is speaking, and press SPACE to talk", bg=BG, fg=FG, font=LF).pack(pady=(10,0))
+        tk.Label(rest, text="Click the `Set Away` button to mute (AFK) and click again to set it off --- other users will see this status", bg=BG, fg=FG, font=LF).pack(pady=(1,10))
+        tk.Label(rest, text="4. Click `Return to Lobby` to return to channel selection", bg=BG, fg=FG, font=LF).pack(pady=10)
+        tk.Label(rest, text="5. Close client app to disconnect", bg=BG, fg=FG, font=LF).pack(pady=10)
+
+        back = tk.Label(top, text=f"Return",
+                        bg=TOPBAR, fg=ACCENT,
+                        font=BF, cursor="hand2")
+        back.pack(side="right", padx=16, pady=10)
+        back.bind("<Button-1>", self.show_username_lobby)
+
 
     def _confirm_username(self):
         name = self._uvar.get().strip()
@@ -238,16 +276,6 @@ class YappersApp:
     # ──────────────────────────────────────────────────────────────
 
     def _join_channel(self, ch_name: str):
-        # TODO: call client.channel_lobby(self.server_socket) — adapted for GUI:
-        # self.server_socket.sendall(f"JOIN {ch_name}".encode())
-        # resp = self.server_socket.recv(1024).decode().strip()
-        # parts = resp.split()
-        # if parts[0] == "PEERS":
-        #     for peer_str in parts[1:]:          # "ip:port"
-        #         ip, port = peer_str.rsplit(":", 1)
-        #         # NOTE: server needs to also send peer username alongside ip:port
-        #         # self.peers[peer_username] = (ip, int(port))
-
         peers = client.JoinChannel(self.server_socket, ch_name, self.username)
         self.peers = peers
         # print("peers from __join_channel ", peers)
