@@ -50,12 +50,12 @@ def JoinChannel(s, channel, myUsername):
     if parts[0] == "PEERS":
         for peer_str in parts[1:]:
             username, ip, port = peer_str.rsplit(":", 2)
-            if username == myUsername: # global variable Username tracking is hard... so arguement
+            if username == myUsername: # global variable Username tracking is hard... so i use arguement
                 continue
             else:
                 peers[username] = (ip, int(port)) 
         # here, removes the self from peers list, so doesn't echo
-        print("peers from JoinChannel ", peers)
+        # print("peers from JoinChannel ", peers)
     return peers
 
 def GetUserCountperChannel(s):

@@ -33,6 +33,7 @@ class YappersApp:
         self.root.geometry("750x500")
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
+        self.root.iconbitmap("assets/CLIENTlogo.ico")
 
         # ── App state ─────────────────────────────────────────────────────────
         self.username: str | None        = None
@@ -209,7 +210,7 @@ class YappersApp:
         #         # self.peers[peer_username] = (ip, int(port))
         peers = client.JoinChannel(self.server_socket, ch_name, self.username)
         self.peers = peers
-        print("peers from __join_channel ", peers)
+        # print("peers from __join_channel ", peers)
         self.current_channel = ch_name
         self.channel_users = {self.username: "idle"}
 
@@ -407,7 +408,7 @@ class YappersApp:
         self.is_talking.set()
         self._set_status(self.username, "talking")
 
-        print("Peers from start_talking", self.peers)
+        # print("Peers from start_talking", self.peers)
 
         threading.Thread(
             target=client.send_audio_loop,

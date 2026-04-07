@@ -26,6 +26,7 @@ class ServerUI:
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
         self.root.protocol("WM_DELETE_WINDOW", self._shutdown)
+        self.root.iconbitmap("assets/SERVERlogo.ico")
 
         # Top bar
         top = tk.Frame(self.root, bg=TOPBAR, height=50)
