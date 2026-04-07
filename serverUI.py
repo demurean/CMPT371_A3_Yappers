@@ -94,8 +94,13 @@ class ServerUI:
         self.root.after(500, self._refresh)
 
     def _shutdown(self):
-        """Stop accepting connections and exit."""
+        """Close all client connections, stop accepting, and exit."""
         print("Server shutting down...")
+        for conn in list(server.Connections.values()):
+            try:
+                conn.close()
+            except Exception:
+                pass
         try:
             server.MySocket.close()
         except Exception:
