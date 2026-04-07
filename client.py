@@ -51,6 +51,8 @@ def JoinChannel(s, channel):
         for peer_str in parts[1:]:
             username, ip, port = peer_str.rsplit(":", 2)
             peers[username] = (ip, int(port)) 
+        # here, removes the self from peers list, so doesn't echo
+        peers.pop(Username, None)
     return peers
 
 def GetUserCountperChannel(s):
