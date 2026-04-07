@@ -71,6 +71,10 @@ def JoinChannel(s, channel, myUsername):
 def GetUserCountperChannel(s):
     message = f"GET_COUNT"
     s.sendall(message.encode())
+
+    ### there's a bug that fails on this function due to runtime error
+    # plan to move to _handle_push in clientUI.py
+
     response = s.recv(1024).decode().strip()
     argument, payload = response.split(" ", 1)
     CountperChannel = {}

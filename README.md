@@ -106,6 +106,8 @@ CMPT371_A3_Yappers/
 
 ### Limitations & Known Issues
 server.py is not meant to be scaled up on. This implementation(with no JSON) is expected to stay at its current size
+BUG: breakdown on client.py GetUserCountperChannel() due to simultaneous use of socket for recv and runtime error
+no client menu so client app can start first without server: so server MUST BE STARTED FIRST
 
 ---
 
@@ -119,3 +121,5 @@ server.py is not meant to be scaled up on. This implementation(with no JSON) is 
 - Double checked for edge cases in server.py with ChatGPT
 - Tkinter tutorial to make the python app https://www.pythontutorial.net/tkinter/
 - other references on server setting up from resources provided in assignment description
+- Tkinter frame layouting https://tkinterexamples.com/geometry/
+- Tkinter change app logo https://stackoverflow.com/questions/33137829/how-to-replace-the-icon-in-a-tkinter-app 

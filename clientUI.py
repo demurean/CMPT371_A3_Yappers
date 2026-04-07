@@ -426,6 +426,7 @@ class YappersApp:
                  bg=BG, fg=RED, font=HF).pack(pady=(0, 8))
         tk.Label(frame, text="The server has shut down.",
                  bg=BG, fg=DIM, font=LF).pack()
+        
     def _handle_push(self, msg):
         parts = msg.split()
         if not parts:
@@ -438,6 +439,13 @@ class YappersApp:
         elif parts[0] == "STATUS_NOTIFY" and len(parts) > 1:
             uname, status = parts[1].rsplit(":", 1)
             self.root.after(0, self._set_status, uname, status)
+        # elif parts[0] == "CHANNEL_COUNT":
+        #     _ , payload = msg.split(" ", 1)
+        #     entries = payload.split("|")
+
+        #     for entry in entries:
+        #         ChannelName, ChannelCount = entry.rsplit(":", 1)
+        #         CHANNEL_INFO[ChannelName] = ChannelCount
 
     def _add_peer(self, username, ip, port):
         if not self.current_channel or username in self.channel_users:
