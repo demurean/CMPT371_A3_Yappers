@@ -17,6 +17,7 @@ YELLOW = "#FFC107"
 RED    = "#f44336"
 ACCENT = "#aaaaff"
 
+ALL_USERNAMES = []
 AVAILABLE_USERNAMES = []
 CHANNEL_INFO = {"Channel 1": 0, "Channel 2": 0}
 
@@ -123,7 +124,8 @@ class YappersApp:
         row.pack(pady=(0, 16))
 
         self._uvar = tk.StringVar()
-        # values come from server LOBBY response
+        # values come from server LOBBY_ALL and LOBBY_AVAIL response
+        # ALL_USERNAMES = client.GetAllUsernames(self.server_socket)
         AVAILABLE_USERNAMES = client.GetAvailableUsernames(self.server_socket)
         self._username_cb = ttk.Combobox(row, textvariable=self._uvar,
                                          values=AVAILABLE_USERNAMES,
@@ -310,12 +312,14 @@ class YappersApp:
                      font=BF).pack(side="left", padx=(0, 8))
 
             dot = tk.Canvas(inner, width=20, height=20, bg=CARD, highlightthickness=0)
+            # print("from _rebuild_cards, what status: ", status)
             dot.create_oval(2, 2, 18, 18, fill=self._color(status), tags="dot")
             dot.pack(side="left")
             self.user_circles[uname] = dot
 
     def _set_status(self, uname: str, status: str):
         self.channel_users[uname] = status
+        print("from _set_status, what status: ", status)
         if uname in self.user_circles:
             self.user_circles[uname].itemconfig("dot", fill=self._color(status))
 

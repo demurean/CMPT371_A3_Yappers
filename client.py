@@ -24,11 +24,21 @@ Username = None
 UDP_PORT = 0
 
 ## 1. CLIENT ESTABLISHING CONNECTION TO SERVER + Choosing Username
+def GetAllUsernames(s):
+    s.sendall(b'LOBBY_ALL')  
+    FirstData = s.recv(1024).decode().strip()
+    FirstParts = FirstData.split()
+    if FirstParts[0] == "ALL_USERNAMES":
+        AllUsernames = FirstParts[1:]
+        return AllUsernames
+    else:
+        return []
+    
 def GetAvailableUsernames(s):
-    s.sendall(b'LOBBY')
+    s.sendall(b'LOBBY_AVAIL')  
     data = s.recv(1024).decode().strip()
     parts = data.split()
-    if parts[0] == "USERNAMES":
+    if parts[0] == "AVAIL_USERNAMES":
         usernames = sorted(parts[1:]) # list always in alphabetical order
         return usernames
     else:

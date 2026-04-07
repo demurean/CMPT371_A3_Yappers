@@ -41,8 +41,11 @@ def handle_client(conn, addr):
             command = parts[0]
 
             # when client first connect, they have to choose a username display
-            if command == "LOBBY":
-                response = "USERNAMES " + " ".join(AvailableUsernames)
+            if command == "LOBBY_ALL":
+                FirstResponse = "ALL_USERNAMES " + " ".join(AllUsernames)
+                conn.send(FirstResponse.encode())
+            elif command == "LOBBY_AVAIL":
+                response = "AVAIL_USERNAMES " + " ".join(AvailableUsernames)
                 conn.send(response.encode())
 
             # confirming their selection -- frontend might need to be dynamic.
