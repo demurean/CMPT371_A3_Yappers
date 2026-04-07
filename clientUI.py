@@ -46,6 +46,8 @@ class YappersApp:
         self.channel_users: dict[str, str]    = {}
         # {username: canvas}  canvas holding the coloured dot
         self.user_circles: dict[str, tk.Canvas] = {}
+        # {username: after-job-id}  for debouncing idle resets
+        self._reset_jobs:  dict[str, str]     = {}
 
         # ── Server socket (TCP) ───────────────────────────────────────────────
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -458,13 +460,22 @@ class YappersApp:
     # ── Audio receive callback ────────────────────────────────────────────────
 
     def _on_audio_from(self, sender: str):
-        """Called by receive_audio_loop thread when a packet arrives."""
+        """Called by receive_audio_loop thread — hand off to main thread."""
+        self.root.after(0, self._handle_audio_from, sender)
+
+    def _handle_audio_from(self, sender: str):
+        """Runs on main thread. Updates dot and debounces the idle reset."""
         if sender not in self.channel_users:
             return
-        self.root.after(0, self._set_status, sender, "talking")
-        self.root.after(350, self._maybe_reset, sender)
+        self._set_status(sender, "talking")
+        # cancel any previously scheduled reset for this sender
+        if sender in self._reset_jobs:
+            self.root.after_cancel(self._reset_jobs[sender])
+        # reset to idle 500 ms after the LAST packet from this sender
+        self._reset_jobs[sender] = self.root.after(500, self._maybe_reset, sender)
 
     def _maybe_reset(self, uname: str):
+        self._reset_jobs.pop(uname, None)
         if self.channel_users.get(uname) == "talking":
             self._set_status(uname, "idle")
 
