@@ -282,8 +282,8 @@ class YappersApp:
             label = self._channel_card(frame, ch_name, count)
             self.channel_labels[ch_name] = label # nvm i rember
 
-        self._listen_flag_lobby = threading.Event()
-        self._listen_flag_lobby.set()
+        # self._listen_flag_lobby = threading.Event()
+        # self._listen_flag_lobby.set()
         self._lobby_listener_done = threading.Event() # race case handling
         threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
 
@@ -311,7 +311,8 @@ class YappersApp:
     def _ServerChannel_listener(self):
         self.server_socket.settimeout(0.1)   # short timeout so we exit promptly when flag cleared
         buf = ""
-        while self._listen_flag_lobby.is_set():
+        # while self._listen_flag_lobby.is_set():
+        while not self._lobby_listener_done.is_set():
             try:
                 data = self.server_socket.recv(1024).decode()
                 if not data:
@@ -344,8 +345,8 @@ class YappersApp:
 
     def _join_channel(self, ch_name: str):
         # Stop lobby listener and wait for it to finish reading before we use the socket
-        if hasattr(self, '_listen_flag_lobby'):
-            self._listen_flag_lobby.clear()
+        # if hasattr(self, '_listen_flag_lobby'):
+        #     self._listen_flag_lobby.clear()
         if hasattr(self, '_lobby_listener_done'):
             self._lobby_listener_done.wait(timeout=0.3)
         self.server_socket.settimeout(None)   # restore blocking mode for synchronous calls
@@ -374,8 +375,10 @@ class YappersApp:
 
     def show_channel(self):
         self._clear()
-        if hasattr(self, "_listen_flag_lobby"):
-            self._listen_flag_lobby.clear() # clears listening flag bcs out of the channel lobby and entering the client tts lobby, which also uses listening flag
+        # if hasattr(self, "_listen_flag_lobby"):
+        #     self._listen_flag_lobby.clear() # clears listening flag bcs out of the channel lobby and entering the client tts lobby, which also uses listening flag
+        if hasattr(self, '_lobby_listener_done'):
+            self._lobby_listener_done.wait(timeout=0.3)
         frame = tk.Frame(self.root, bg=BG)
         frame.pack(fill="both", expand=True)
         self._frame = frame
