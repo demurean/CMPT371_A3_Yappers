@@ -19,8 +19,9 @@ A real-time **push-to-talk (PTT) voice chat application** implemented in Python 
 **Features:**
 - Unique usernames for each client based on the NATO alphabet
 - Two distinct channels to communicate on (one at a time)
-- Status circles next to the username to indicate active talker and away (AFK)
-- Push to talk
+- Status circles next to each username to indicate active talker and away (AFK)
+- Push to talk (spacebar or button)
+- Live waveform visualiser in the bottom bar reacting to incoming and outgoing audio
 
 **Architecture:**
 - Client–Server over TCP to communicate & keep track of client IPs over channels and usernames in the active session
@@ -46,6 +47,12 @@ pip3 install pyaudio
 
 # Windows
 pip install pyaudio
+```
+> If `pip install pyaudio` fails on Windows, try: `pip install pipwin` then `pipwin install pyaudio`
+
+Then install remaining dependencies:
+```bash
+pip3 install -r requirements.txt
 ```
 
 ### Run the app
@@ -126,7 +133,7 @@ Messages from the server are either direct responses or `\n`-terminated push not
 | `AVAIL_USERNAMES` | `AVAIL_USERNAMES <name> <name> ...` | Response to `LOBBY_AVAIL` |
 | `REGISTER_SUCCESS` | `REGISTER_SUCCESS` | Username successfully registered |
 | `REGISTER_FAIL` | `REGISTER_FAIL` | Username already taken |
-| `PEERS` | `PEERS <user>:<ip>:<port> ...` | Response to `JOIN`; list of all peers in channel |
+| `PEERS` | `PEERS <user>:<ip>:<port>:<status> ...` | Response to `JOIN`; list of all peers with their current status |
 | `CHANNEL_COUNT` | `CHANNEL_COUNT <ch>:<n>\|<ch>:<n>` | Response to `GET_COUNT` |
 | `JOIN_NOTIFY` | `JOIN_NOTIFY <user>:<ip>:<port>\n` | Push: a new peer joined the channel |
 | `LEAVE_NOTIFY` | `LEAVE_NOTIFY <username>\n` | Push: a peer left the channel |

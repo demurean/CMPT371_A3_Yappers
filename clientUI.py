@@ -224,7 +224,7 @@ class YappersApp:
         
         row = tk.Frame(rest, bg=BG)
         row.pack(pady=(0, 16))
-        tk.Label(rest, text="An app made by Arielle and Tasha for CMPT 371 Spring", bg=BG, fg=FG, font=BF).pack(pady=(0,5))
+        tk.Label(rest, text="An app made by Arielle and Tasha for CMPT 371 Spring 2026", bg=BG, fg=FG, font=BF).pack(pady=(0,5))
 
         tk.Label(rest, text="1. Choose a username, each active client has a unique username from other online clients", bg=BG, fg=FG, font=LF).pack(pady=10)
         tk.Label(rest, text="2. Choose a channel to tune in to", bg=BG, fg=FG, font=LF).pack(pady=10)
