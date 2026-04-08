@@ -56,17 +56,21 @@ def JoinChannel(s, channel, myUsername):
     response = s.recv(1024).decode().strip()
     parts = response.split()
     peers = {}
+    statuses = {}
 
     if parts[0] == "PEERS":
         for peer_str in parts[1:]:
-            username, ip, port = peer_str.rsplit(":", 2)
-            if username == myUsername: # global variable Username tracking is hard... so i use arguement
-                continue
+            fields = peer_str.rsplit(":", 3)
+            if len(fields) == 4:
+                username, ip, port, status = fields
             else:
-                peers[username] = (ip, int(port)) 
-        # here, removes the self from peers list, so doesn't echo
-        # print("peers from JoinChannel ", peers)
-    return peers
+                username, ip, port = peer_str.rsplit(":", 2)
+                status = "active"
+            if username == myUsername:
+                continue
+            peers[username] = (ip, int(port))
+            statuses[username] = status
+    return peers, statuses
 
 def GetUserCountperChannel(s):
     message = f"GET_COUNT"
@@ -104,16 +108,19 @@ def setup_udp():
     sock.settimeout(1.0)
     return sock
 
-def send_audio_loop(record_stream, udp_sock, peers, username, is_talking_flag):
+def send_audio_loop(record_stream, udp_sock, peers, username, is_talking_flag, on_chunk=None):
     """
     Reads mic chunks from record_stream and UDP-sends to every peer.
     Runs in its own thread while PTT is held.
     peers: dict  {peer_username: (ip_str, port_int)}
     is_talking_flag: threading.Event -> cleared by caller to stop the loop
+    on_chunk(audio_pcm): optional callback for waveform visualisation
     """
     while is_talking_flag.is_set() and record_stream:
         try:
             audio = record_stream.read(CHUNK, exception_on_overflow=False)
+            if on_chunk:
+                on_chunk(audio)
             header = username.encode().ljust(16)   # fixed 16-byte sender header
             packet = header + audio
             for _peer, (ip, port) in peers.items():
@@ -126,8 +133,10 @@ def receive_audio_loop(udp_sock, playback_stream, running_flag, on_packet):
     """
     Continuously receives UDP audio packets and plays them back.
     running_flag: threading.Event -> cleared by caller to stop the loop
-    on_packet(sender_username): callback so the GUI can update status circles
+    on_packet(sender, audio_pcm): callback so the GUI can update status circles / waveform
     """
+    if playback_stream is None:
+        print("WARNING: receive_audio_loop — playback_stream is None, no audio will play")
     while running_flag.is_set():
         try:
             packet, _ = udp_sock.recvfrom(16 + CHUNK * 2)
@@ -136,14 +145,18 @@ def receive_audio_loop(udp_sock, playback_stream, running_flag, on_packet):
             sender    = packet[:16].decode(errors='ignore').strip()
             audio_pcm = packet[16:]
             if on_packet:
-                on_packet(sender)
-            if playback_stream and audio_pcm:
-                playback_stream.write(audio_pcm)
+                on_packet(sender, audio_pcm)
         except socket.timeout:
             continue
         except Exception as e:
             if running_flag.is_set():
                 print(f"receive_audio error: {e}")
+            continue
+        if playback_stream and audio_pcm:
+            try:
+                playback_stream.write(audio_pcm)
+            except Exception as e:
+                print(f"playback write error: {e}")
 
 # order of execution:
 # start_app() begins, initiates session to server

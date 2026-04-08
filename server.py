@@ -15,7 +15,8 @@ MySocket.listen()
 AllUsernames = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-Ray", "Yankee", "Zulu"]
 AvailableUsernames = AllUsernames.copy()
 OnlineUsers = {}
-Connections = {}  # username -> TCP conn, for push notifications
+Connections = {}    # username -> TCP conn, for push notifications
+UserStatuses = {}   # username -> "away" | "active"
 Channels = {
     "Channel 1": {},
     "Channel 2": {}
@@ -71,6 +72,7 @@ def handle_client(conn, addr):
                     OnlineUsers[username] = (addr[0], udp_port)
                     Connections[username] = conn
                     conn.send(b"REGISTER_SUCCESS")
+                    print(f"CURRENTLY ONLINE ({', '.join(OnlineUsers.keys())})")
             
             # client chooses a channel to communicate in. server shares necessary info for the fun to begin
             # FRONTEND NOTE: DO NOT LET USER GO TO JOIN PAGE WITHOUT REGISTERING A USERNAME...
@@ -85,7 +87,11 @@ def handle_client(conn, addr):
                     continue
 
                 Channels[channel][username] = OnlineUsers[username]
-                PeerStrings = [f"{username}:{ip}:{port}" for username, (ip, port) in Channels[channel].items()] # so looks like: ["Alpha:192.168.1.5:6000", "Bravo:192.168.1.8:6001"] << is ["USERNAME1:IP1:PORT1", "USERNAME2:IP2:PORT2"]
+                UserStatuses[username] = "active"   # reset status on join
+                PeerStrings = [
+                    f"{u}:{ip}:{port}:{UserStatuses.get(u, 'active')}"
+                    for u, (ip, port) in Channels[channel].items()
+                ]
                 response = "PEERS " + " ".join(PeerStrings)
                 print("DEBUG CHANNEL STATE:", Channels[channel])
                 # print(response)
@@ -105,6 +111,7 @@ def handle_client(conn, addr):
             elif command == "STATUS":
                 if len(parts) >= 2 and channel:
                     status = parts[1]  # "away" or "active"
+                    UserStatuses[username] = status
                     notify = f"STATUS_NOTIFY {username}:{status}\n"
                     for member in list(Channels[channel]):
                         if member != username and member in Connections:
@@ -116,6 +123,7 @@ def handle_client(conn, addr):
             # client exits channel and is in channel lobby
             elif command == "RETURN":
                 Channels[channel].pop(username, None)
+                UserStatuses.pop(username, None)
                 print(f"disconnected from {channel}")
                 notify = f"LEAVE_NOTIFY {username}\n"
                 for member in list(Channels[channel]):
@@ -148,6 +156,7 @@ def handle_client(conn, addr):
         if username:
             Connections.pop(username, None)
             OnlineUsers.pop(username, None)
+            UserStatuses.pop(username, None)
             if channel:
                 Channels[channel].pop(username, None)
                 notify = f"LEAVE_NOTIFY {username}\n"

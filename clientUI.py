@@ -1,4 +1,6 @@
+import collections
 import socket
+import struct
 import threading
 import tkinter as tk
 from tkinter import ttk, simpledialog
@@ -49,6 +51,12 @@ class YappersApp:
         # {username: after-job-id}  for debouncing idle resets
         self._reset_jobs:  dict[str, str]     = {}
 
+        # ── Waveform ──────────────────────────────────────────────────────────
+        self._wave_buf: collections.deque     = collections.deque([0.0] * 100, maxlen=100)
+        self._wave_canvas: tk.Canvas | None   = None
+        self._wave_job:    str | None         = None
+        self._got_audio_since_last_draw       = False
+
         # ── Server socket (TCP) ───────────────────────────────────────────────
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host = simpledialog.askstring(
@@ -94,6 +102,10 @@ class YappersApp:
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _clear(self):
+        if self._wave_job:
+            self.root.after_cancel(self._wave_job)
+            self._wave_job = None
+        self._wave_canvas = None
         if self._frame:
             self._frame.destroy()
             self._frame = None
@@ -104,6 +116,36 @@ class YappersApp:
             "talking": GREEN,
             "away":    RED,
         }.get(status, YELLOW)
+
+    def _draw_waveform(self):
+        c = self._wave_canvas
+        if c is None or not c.winfo_exists():
+            return
+
+        # Decay to silence when no audio packet arrived since last frame
+        if not self._got_audio_since_last_draw:
+            self._wave_buf.append(0.0)
+        self._got_audio_since_last_draw = False
+
+        c.delete("wave")
+        w, h = 260, 40
+        mid   = h / 2
+        scale = mid - 4          # max deviation from centre line (4 px margin)
+        buf   = list(self._wave_buf)
+        n     = len(buf)
+
+        # Baseline
+        c.create_line(0, mid, w, mid, fill="#444444", width=1, tags="wave")
+
+        if n >= 2:
+            pts = []
+            for i, val in enumerate(buf):
+                x = i * w / (n - 1)
+                y = mid - val * scale
+                pts.extend([x, y])
+            c.create_line(pts, fill=ACCENT, width=1.5, smooth=True, tags="wave")
+
+        self._wave_job = self.root.after(33, self._draw_waveform)   # ~30 fps
 
     def _open_playback(self):
         if not (client.PYAUDIO_AVAILABLE and self.pa):
@@ -137,6 +179,8 @@ class YappersApp:
         # values come from server LOBBY_ALL and LOBBY_AVAIL response
         ALL_USERNAMES = client.GetAllUsernames(self.server_socket)
         AVAILABLE_USERNAMES = client.GetAvailableUsernames(self.server_socket)
+        self._all_usernames_cache   = ALL_USERNAMES
+        self._avail_usernames_cache = AVAILABLE_USERNAMES
         used_names = []
         for name in ALL_USERNAMES:
             if name not in AVAILABLE_USERNAMES:
@@ -180,7 +224,7 @@ class YappersApp:
         
         row = tk.Frame(rest, bg=BG)
         row.pack(pady=(0, 16))
-        tk.Label(rest, text="An app made by Arielle and Tasha for CMPT 371 Spring", bg=BG, fg=FG, font=LF).pack(pady=(0,5))
+        tk.Label(rest, text="An app made by Arielle and Tasha for CMPT 371 Spring", bg=BG, fg=FG, font=BF).pack(pady=(0,5))
 
         tk.Label(rest, text="1. Choose a username, each active client has a unique username from other online clients", bg=BG, fg=FG, font=LF).pack(pady=10)
         tk.Label(rest, text="2. Choose a channel to tune in to", bg=BG, fg=FG, font=LF).pack(pady=10)
@@ -211,10 +255,9 @@ class YappersApp:
             return
 
         self.username = name
-        # if name in AVAILABLE_USERNAMES:
-        #     AVAILABLE_USERNAMES.remove(name)   # mock: claim name locally
-        # NOTE: ^^ should be handled server-side already
-
+        already_online = [u for u in self._all_usernames_cache if u not in self._avail_usernames_cache]
+        everyone = already_online + [name]
+        print(f"JOINED (lobby)\nUSERNAME ({name})\nONLINE ({', '.join(f'{u} (lobby)' for u in everyone)})")
         self.show_channel_lobby()
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -241,6 +284,7 @@ class YappersApp:
 
         self._listen_flag_lobby = threading.Event()
         self._listen_flag_lobby.set()
+        self._lobby_listener_done = threading.Event() # race case handling
         threading.Thread(target=self._ServerChannel_listener, daemon=True).start()
 
     def _channel_card(self, parent: tk.Frame, ch_name: str, count: int):
@@ -265,7 +309,7 @@ class YappersApp:
 
     # ── Server Channel Listener ────────────────────────────────────────────────────────────
     def _ServerChannel_listener(self):
-        self.server_socket.settimeout(1.0)
+        self.server_socket.settimeout(0.1)   # short timeout so we exit promptly when flag cleared
         buf = ""
         while self._listen_flag_lobby.is_set():
             try:
@@ -289,6 +333,7 @@ class YappersApp:
                 continue
             except Exception:
                 break
+        self._lobby_listener_done.set()   # signal that we've stopped reading the socket
 
     def _update_channel_counts(self, CHANNEL_INFO):
         for ch_name, count in CHANNEL_INFO.items():
@@ -298,15 +343,23 @@ class YappersApp:
     # ──────────────────────────────────────────────────────────────
 
     def _join_channel(self, ch_name: str):
-        peers = client.JoinChannel(self.server_socket, ch_name, self.username)
+        # Stop lobby listener and wait for it to finish reading before we use the socket
+        if hasattr(self, '_listen_flag_lobby'):
+            self._listen_flag_lobby.clear()
+        if hasattr(self, '_lobby_listener_done'):
+            self._lobby_listener_done.wait(timeout=0.3)
+        self.server_socket.settimeout(None)   # restore blocking mode for synchronous calls
+
+        peers, statuses = client.JoinChannel(self.server_socket, ch_name, self.username)
         self.peers = peers
-        # print("peers from __join_channel ", peers)
         self.current_channel = ch_name
         self.channel_users = {self.username: "idle"}
 
-        for x in peers: # peers[username] = ip, port
-            self.channel_users[x] = "idle"
-            print(x)
+        for x in peers:
+            self.channel_users[x] = statuses.get(x, "idle")
+
+        channel_members = list(self.channel_users.keys())
+        print(f"JOINED ({ch_name})\nUSERNAME ({self.username})\nONLINE ({', '.join(f'{u} ({ch_name})' for u in channel_members)})")
 
         self.show_channel()
 
@@ -382,6 +435,14 @@ class YappersApp:
                                    bg=BTN, fg=FG, relief="flat", font=LF,
                                    padx=12, pady=4, command=self.toggle_away)
         self._away_btn.pack(side="left")
+
+        # Waveform — incoming audio visualizer
+        self._wave_canvas = tk.Canvas(bot, width=260, height=40,
+                                      bg=TOPBAR, highlightthickness=0)
+        self._wave_canvas.pack(side="right", padx=24, pady=11)
+        self._wave_buf = collections.deque([0.0] * 100, maxlen=100)
+        self._got_audio_since_last_draw = False
+        self._draw_waveform()
 
     # ── Card grid ─────────────────────────────────────────────────────────────
 
@@ -531,7 +592,8 @@ class YappersApp:
         threading.Thread(
             target=client.send_audio_loop,
             args=(self.record_stream, self.udp_sock,
-                  self.peers, self.username, self.is_talking),
+                  self.peers, self.username, self.is_talking,
+                  self._on_send_chunk),
             daemon=True,
         ).start()
 
@@ -571,8 +633,29 @@ class YappersApp:
 
     # ── Audio receive callback ────────────────────────────────────────────────
 
-    def _on_audio_from(self, sender: str):
-        """Called by receive_audio_loop thread — hand off to main thread."""
+    def _on_send_chunk(self, audio_pcm: bytes):
+        """Called from send thread for each outgoing mic chunk — feeds waveform."""
+        self._feed_waveform(audio_pcm)
+
+    def _feed_waveform(self, audio_pcm: bytes):
+        """Thread-safe: compute RMS amplitude and push to waveform buffer.
+        Safe to call from any thread — deque.append and bool-set are GIL-atomic."""
+        if not audio_pcm:
+            return
+        n = len(audio_pcm) // 2
+        if n == 0:
+            return
+        try:
+            samples = struct.unpack(f'{n}h', audio_pcm[:n * 2])
+            rms = (sum(s * s for s in samples) / n) ** 0.5
+            self._wave_buf.append(min(rms / 4096.0, 1.0))
+            self._got_audio_since_last_draw = True
+        except Exception:
+            pass
+
+    def _on_audio_from(self, sender: str, audio_pcm: bytes):
+        """Called by receive_audio_loop thread — feed waveform then hand off to main thread."""
+        self._feed_waveform(audio_pcm)
         self.root.after(0, self._handle_audio_from, sender)
 
     def _handle_audio_from(self, sender: str):
@@ -580,10 +663,8 @@ class YappersApp:
         if sender not in self.channel_users:
             return
         self._set_status(sender, "talking")
-        # cancel any previously scheduled reset for this sender
         if sender in self._reset_jobs:
             self.root.after_cancel(self._reset_jobs[sender])
-        # reset to idle 500 ms after the LAST packet from this sender
         self._reset_jobs[sender] = self.root.after(500, self._maybe_reset, sender)
 
     def _maybe_reset(self, uname: str):
