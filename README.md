@@ -164,8 +164,7 @@ Audio is sent directly between clients with no server involvement.
 - BUG: client does not get the `disconnect from server` page if they are still on username selection page
 
 ## Video Demo
-
-#TODO
+The file `Demonstration_Video.mp4` is our video demo showcasing the usable features of our application
 
 
 ## References & Citations
