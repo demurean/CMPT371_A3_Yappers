@@ -23,6 +23,16 @@ Channels = {
 
 # function handling client requests & identification: Registering and Keeping Track
 # alongside broadcasting client IP to facilitate p2p amongst themselves.
+def broadcast_channel_counts():
+    """Push current channel counts to every connected client."""
+    entries = [f"{ch}:{len(members)}" for ch, members in Channels.items()]
+    msg = "CHANNEL_COUNT_NOTIFY " + "|".join(entries) + "\n"
+    for conn in list(Connections.values()):
+        try:
+            conn.sendall(msg.encode())
+        except Exception:
+            pass
+
 def handle_client(conn, addr):
     username = None
     channel = None
@@ -90,6 +100,7 @@ def handle_client(conn, addr):
                             Connections[member].sendall(notify.encode())
                         except Exception:
                             pass
+                broadcast_channel_counts()
 
             elif command == "STATUS":
                 if len(parts) >= 2 and channel:
@@ -113,6 +124,7 @@ def handle_client(conn, addr):
                             Connections[member].sendall(notify.encode())
                         except Exception:
                             pass
+                broadcast_channel_counts()
                 channel = None
             
             # if client requests usercount in each channel -- for lobby use
@@ -121,7 +133,7 @@ def handle_client(conn, addr):
                 for ch in Channels:
                     count = len(Channels[ch])
                     entries.append(f"{ch}:{count}")
-                CountString = f"CHANNEL_COUNT " + "|".join(entries) 
+                CountString = f"CHANNEL_COUNT " + "|".join(entries)
                 conn.send(CountString.encode())
 
                 
@@ -148,6 +160,7 @@ def handle_client(conn, addr):
             for ch in Channels.values(): # clean sweep
                 ch.pop(username, None)
             AvailableUsernames.append(username) # username available to be used again
+            broadcast_channel_counts()
         conn.close()
 
 

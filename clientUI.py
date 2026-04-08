@@ -1,7 +1,7 @@
 import socket
 import threading
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, simpledialog
 
 import client
 
@@ -51,7 +51,15 @@ class YappersApp:
 
         # ── Server socket (TCP) ───────────────────────────────────────────────
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.connect((client.SERVER_HOST, client.SERVER_PORT))
+        host = simpledialog.askstring(
+            "Connect to Server",
+            "Enter server IP address:",
+            initialvalue=client.SERVER_HOST,
+        )
+        if not host:
+            self.root.destroy()
+            return
+        self.server_socket.connect((host.strip(), client.SERVER_PORT))
 
         # {peer_username: (ip, port)}
         # TODO: populate from server JOIN response ("PEERS ip:port …")
@@ -257,15 +265,29 @@ class YappersApp:
 
     # ── Server Channel Listener ────────────────────────────────────────────────────────────
     def _ServerChannel_listener(self):
-        # self.server_socket.settimeout(1.0)
+        self.server_socket.settimeout(1.0)
+        buf = ""
         while self._listen_flag_lobby.is_set():
             try:
-                CHANNEL_INFO = client.GetUserCountperChannel(self.server_socket)
-                self.root.after(0, self._update_channel_counts, CHANNEL_INFO)
+                data = self.server_socket.recv(1024).decode()
+                if not data:
+                    self.root.after(0, self._on_server_disconnect)
+                    break
+                buf += data
+                while "\n" in buf:
+                    line, buf = buf.split("\n", 1)
+                    parts = line.strip().split()
+                    if not parts:
+                        continue
+                    if parts[0] == "CHANNEL_COUNT_NOTIFY":
+                        counts = {}
+                        for entry in parts[1].split("|"):
+                            ch, count = entry.rsplit(":", 1)
+                            counts[ch] = count
+                        self.root.after(0, self._update_channel_counts, counts)
             except socket.timeout:
                 continue
             except Exception:
-                print("Listener error")
                 break
 
     def _update_channel_counts(self, CHANNEL_INFO):

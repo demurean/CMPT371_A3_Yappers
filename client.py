@@ -148,4 +148,4 @@ def receive_audio_loop(udp_sock, playback_stream, running_flag, on_packet):
 # order of execution:
 # start_app() begins, initiates session to server
 # THEN the core app can take place
-# NOTE: start_app() not called here — UI.py drives the app now
+# NOTE: start_app() not called here — clientUI.py drives the client side app now
