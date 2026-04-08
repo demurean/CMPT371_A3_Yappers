@@ -87,6 +87,7 @@ CMPT371_A3_Yappers/
 │    ├── SERVERlogo.ico # logo for server app
 │    └── EvilLogo.png
 │
+├── Demonstration_Video.mp4 # Our video demonstrating the usable features of the application
 ├── server.py          # server -> registration, relay, timeout
 ├── serverUI.py        # server interface with Tkinter GUI.
 ├── client.py          # client -> audio capture/playback, communicates to server 
@@ -165,6 +166,9 @@ Audio is sent directly between clients with no server involvement.
 
 ## Video Demo
 The file `Demonstration_Video.mp4` is our video demo showcasing the usable features of our application
+Heads up the file size is 74.41 MB so the download may take a while.
+
+You can also access the demonstration video here: https://youtu.be/TWzq1EI5HnA
 
 
 ## References & Citations
