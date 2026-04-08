@@ -160,6 +160,8 @@ Audio is sent directly between clients with no server involvement.
 - This implementation(with no JSON) is expected to stay at its current size 
 - There is no client menu so client app cannot start without server active: so server MUST BE STARTED FIRST
 - _**Note**: An unknown maximum clients can connect to the server - Max tested was 6 on a single device, 3 on the network._
+- BUG: There are weird instances of available username displaying an already chosen username, might be due to cache feature
+- BUG: client does not get the `disconnect from server` page if they are still on username selection page
 
 ## Video Demo
 
